@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Reply, ReplyAll, Forward, Archive, Trash2, Star,
   Sparkles, Languages, Wand2, MoreHorizontal, Paperclip,
-  Inbox, PanelRight,
+  Inbox, PanelRight, Send,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { type Email } from "@/lib/mock-data";
@@ -110,7 +111,7 @@ export function EmailReader() {
                 )}
 
                 {/* Reply box */}
-                <ReplyComposer />
+                <ReplyComposer senderName={email.senderName} />
               </div>
             </article>
           </motion.div>
@@ -254,40 +255,70 @@ function Paragraph({ text }: { text: string }) {
   );
 }
 
-function ReplyComposer() {
+function ReplyComposer({ senderName }: { senderName: string }) {
+  const [text, setText] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const suggestions = [
     "Sounds good — let's lock it.",
     "Can you share a brief?",
     "I'll review and get back to you.",
   ];
+
   return (
-    <div className="mt-10 rounded-xl border border-border overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-2 bg-muted/20">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Reply
-        </p>
-        <button className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-          <Sparkles className="h-3 w-3" />
-          AI draft
-        </button>
-      </div>
+    <div className={cn(
+      "relative mt-16 rounded-2xl border border-border/30 bg-muted/5 backdrop-blur-xl transition-all duration-500 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.01)] hover:border-border/50",
+      isFocused && "border-foreground/10 bg-background/95 ring-1 ring-foreground/5 shadow-[0_24px_70px_-10px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.02)]"
+    )}>
+      {/* Textarea */}
       <textarea
-        placeholder="Write a reply…"
-        rows={4}
-        className="w-full resize-none bg-transparent px-4 py-3 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none"
+        value={text}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onChange={(e) => {
+          setText(e.target.value);
+          e.target.style.height = "auto";
+          e.target.style.height = `${e.target.scrollHeight}px`;
+        }}
+        placeholder={`Reply to ${senderName}…`}
+        style={{ height: "auto", minHeight: "110px" }}
+        className="w-full resize-none overflow-hidden bg-transparent px-6 pt-6 pb-2 text-[13.5px] font-normal leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none text-foreground/90"
       />
-      <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 px-4 py-2 bg-muted/10">
-        {suggestions.map((s) => (
-          <button
-            key={s}
-            className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
-          >
-            {s}
+
+      {/* Bottom Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/15 px-6 pb-4 pt-3 bg-muted/5">
+        {/* Left Side: Suggestions */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setText(s);
+                setTimeout(() => {
+                  const ta = document.querySelector("textarea[placeholder^='Reply to']") as HTMLTextAreaElement;
+                  if (ta) {
+                    ta.style.height = "auto";
+                    ta.style.height = `${ta.scrollHeight}px`;
+                  }
+                }, 0);
+              }}
+              className="rounded-full border border-border/30 bg-muted/30 px-3.5 py-1 text-[10.5px] font-medium tracking-wide text-muted-foreground/75 transition-all duration-300 hover:border-foreground/30 hover:text-foreground hover:bg-background hover:shadow-[0_4px_12px_rgba(0,0,0,0.02)] active:scale-95 cursor-pointer"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Right Side: Actions */}
+        <div className="flex items-center gap-2 ml-auto">
+          <button className="flex items-center gap-1.5 h-8 px-5 rounded-full bg-background text-[10.5px] font-bold tracking-wider text-black dark:text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-background/90 hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all cursor-pointer dark:border-[1px] dark:border-neutral-700">
+            <Sparkles className="h-3.5 w-3.5 text-black dark:text-white fill-black dark:fill-white" />
+            <span>AI Draft</span>
           </button>
-        ))}
-        <button className="ml-auto h-7 rounded-lg bg-foreground px-3.5 text-[11.5px] font-medium text-background transition-opacity hover:opacity-80">
-          Send
-        </button>
+          <button className="flex items-center gap-1.5 h-8 px-5 rounded-full bg-foreground text-[10.5px] font-bold tracking-wider text-background shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-foreground/90 hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all cursor-pointer">
+            <span>Send</span>
+            <Send className="h-3 w-3 fill-current" />
+          </button>
+        </div>
       </div>
     </div>
   );

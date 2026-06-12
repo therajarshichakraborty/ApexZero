@@ -1,24 +1,35 @@
-import { motion } from "motion/react";
-import { Star, Search } from "lucide-react";
+import { Star, Search, PanelLeft } from "lucide-react";
 import { useApp, useVisibleEmails } from "@/lib/store";
 import { formatTime, groupByDay, type Email } from "@/lib/mock-data";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 export function InboxList() {
-  const { selectedId, select, toggleStar, search, setSearch, folder } = useApp();
+  const { selectedId, select, toggleStar, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp();
   const visible = useVisibleEmails();
   const mounted = useMounted();
   const groups = groupByDay(visible);
   const folderLabel = folder.charAt(0).toUpperCase() + folder.slice(1);
 
   return (
-    <div className="flex h-full w-full flex-col border-r border-border bg-background">
-
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-[13px] font-semibold tracking-tight">{folderLabel}</h1>
+    <div className="flex h-full w-full min-w-0 overflow-hidden flex-col border-r border-border bg-background">
+      <div className="px-4 pt-4 pb-3 shrink-0 min-w-0">
+        <div className="flex items-center justify-between mb-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={toggleSidebar}
+              className={cn(
+                "grid h-6 w-6 place-items-center rounded-md transition-colors",
+                !sidebarOpen
+                  ? "text-foreground bg-muted"
+                  : "text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+              )}
+              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            >
+              <PanelLeft className="h-3.5 w-3.5" />
+            </button>
+            <h1 className="text-[13px] font-semibold tracking-tight truncate min-w-0">{folderLabel}</h1>
+          </div>
           <span className="text-[11px] tabular-nums text-muted-foreground/60">
             {visible.length}
           </span>
@@ -31,7 +42,7 @@ export function InboxList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter…"
-            className="flex-1 bg-transparent text-[12px] placeholder:text-muted-foreground/40 focus:outline-none"
+            className="flex-1 bg-transparent text-[12px] placeholder:text-muted-foreground/40 focus:outline-none min-w-0"
           />
         </div>
       </div>
@@ -80,25 +91,29 @@ function EmailRow({
   onStar: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
-        "group relative w-full text-left border-b border-border/30 last:border-0 transition-colors",
+        "@container group relative w-full min-w-0 text-left border-b border-border/30 last:border-0 transition-colors cursor-pointer select-none outline-none",
         active ? "bg-muted/60" : "hover:bg-muted/30",
       )}
     >
       {/* Active indicator */}
       {active && (
-        <motion.span
-          layoutId="inbox-indicator"
-          transition={{ type: "spring", stiffness: 420, damping: 32 }}
-          className="absolute left-0 inset-y-0 w-[2px] bg-foreground rounded-r-full"
-        />
+        <span className="absolute left-0 inset-y-0 w-[2px] bg-foreground rounded-r-full" />
       )}
 
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 min-w-0 w-full overflow-hidden">
         {/* Row 1: sender + time */}
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-1 min-w-0">
           {/* Tiny unread dot */}
           <span className={cn(
             "h-1.5 w-1.5 shrink-0 rounded-full transition-opacity",
@@ -110,25 +125,25 @@ function EmailRow({
           )}>
             {email.senderName}
           </span>
-          <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground/50">
+          <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground/50 @[max-width:240px]:hidden">
             {formatTime(email.receivedAt)}
           </span>
         </div>
 
         {/* Row 2: subject */}
         <p className={cn(
-          "pl-3.5 truncate text-[12px] leading-snug mb-0.5",
+          "pl-3.5 truncate text-[12px] leading-snug mb-0.5 min-w-0",
           email.unread ? "text-foreground/85" : "text-muted-foreground",
         )}>
           {email.subject}
         </p>
 
         {/* Row 3: preview + priority + star */}
-        <div className="pl-3.5 flex items-center gap-1.5">
-          <p className="flex-1 truncate text-[11px] text-muted-foreground/50 leading-snug">
+        <div className="pl-3.5 flex items-center gap-1.5 min-w-0">
+          <p className="flex-1 truncate text-[11px] text-muted-foreground/50 leading-snug min-w-0">
             {email.preview}
           </p>
-          <ScoreChip score={email.aiPriority} />
+          <ScoreChip score={email.aiPriority} className="@[max-width:210px]:hidden" />
           <span
             role="button"
             tabIndex={0}
@@ -142,7 +157,7 @@ function EmailRow({
             }}
             aria-label={email.starred ? "Unstar" : "Star"}
             className={cn(
-              "grid h-5 w-5 shrink-0 place-items-center rounded transition-all cursor-pointer",
+              "grid h-5 w-5 shrink-0 place-items-center rounded transition-all cursor-pointer @[max-width:210px]:hidden",
               email.starred
                 ? "text-foreground opacity-100"
                 : "text-muted-foreground/30 opacity-0 group-hover:opacity-100",
@@ -152,11 +167,11 @@ function EmailRow({
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
-function ScoreChip({ score }: { score: number }) {
+function ScoreChip({ score, className }: { score: number; className?: string }) {
   if (score < 60) return null; // only show for meaningful scores
   return (
     <span className={cn(
@@ -164,6 +179,7 @@ function ScoreChip({ score }: { score: number }) {
       score >= 85
         ? "text-foreground/80 border-foreground/20 bg-foreground/5"
         : "text-muted-foreground border-border/60",
+      className,
     )}>
       {score}
     </span>

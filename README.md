@@ -6,7 +6,7 @@ ApexZero is a beautifully minimal, context-aware email and calendar workspace bu
 
 ## 📸 Interface Preview
 
-### 📬 macOS Style Spacious Email Client
+### 📬 Minimalist Style Spacious Email Client
 
 ![macOS style mail app view](./public/image.png)
 

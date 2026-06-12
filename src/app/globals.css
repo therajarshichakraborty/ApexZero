@@ -157,25 +157,11 @@
 }
 
 @utility scrollbar-elegant {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-strong) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+
   &::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-border-strong);
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--color-muted-foreground);
-    background-clip: padding-box;
-    border: 2px solid transparent;
+    display: none; /* Chrome, Safari, Opera */
   }
 }
 
@@ -245,4 +231,13 @@
 
 @utility float-fast {
   animation: float-fast 15s ease-in-out infinite;
+}
+
+html.overflow-hidden,
+body.overflow-hidden {
+  overflow: hidden !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

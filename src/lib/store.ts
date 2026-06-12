@@ -20,6 +20,7 @@ interface AppState {
   composeOpen: boolean;
   paletteOpen: boolean;
   assistantOpen: boolean;
+  sidebarOpen: boolean;
 
   select: (id: string | null) => void;
   setFolder: (f: Folder) => void;
@@ -34,6 +35,7 @@ interface AppState {
   closePalette: () => void;
   togglePalette: () => void;
   toggleAssistant: () => void;
+  toggleSidebar: () => void;
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -44,6 +46,7 @@ export const useApp = create<AppState>((set, get) => ({
   composeOpen: false,
   paletteOpen: false,
   assistantOpen: true,
+  sidebarOpen: true,
 
   select: (id) => {
     set({ selectedId: id });
@@ -75,6 +78,7 @@ export const useApp = create<AppState>((set, get) => ({
   closePalette: () => set({ paletteOpen: false }),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
   toggleAssistant: () => set((s) => ({ assistantOpen: !s.assistantOpen })),
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
 }));
 
 export function useVisibleEmails() {

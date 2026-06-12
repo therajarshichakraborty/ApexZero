@@ -56,96 +56,85 @@ export function AiAssistant() {
   };
 
   return (
-    <AnimatePresence initial={false}>
-      {assistantOpen && (
-        <motion.aside
-          key="assistant"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 320, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex h-full shrink-0 overflow-hidden border-l border-border"
-        >
-          <div className="flex h-full w-[320px] flex-col">
-          <header className="flex h-11 items-center gap-2 border-b border-border px-3">
-              <div className="grid h-6 w-6 place-items-center rounded-md bg-muted text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5" />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-[12.5px] font-semibold">Assistant</span>
-                <span className="text-[10px] text-muted-foreground">
-                  ApexZero AI · 1.0
-                </span>
-              </div>
+    <aside className="relative flex h-full w-full min-w-0 overflow-hidden border-l border-border bg-background">
+      <div className="flex h-full w-full min-w-0 flex-col">
+        <header className="flex h-11 items-center gap-2 border-b border-border px-3 shrink-0">
+          <div className="grid h-6 w-6 place-items-center rounded-md bg-muted text-muted-foreground shrink-0">
+            <Sparkles className="h-3.5 w-3.5" />
+          </div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[12.5px] font-semibold truncate">Assistant</span>
+            <span className="text-[10px] text-muted-foreground truncate">
+              ApexZero AI · 1.0
+            </span>
+          </div>
+          <button
+            onClick={toggleAssistant}
+            aria-label="Close assistant"
+            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground shrink-0"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </header>
+
+        <div ref={scrollRef} className="scrollbar-elegant flex-1 overflow-y-auto px-4 py-5">
+          <div className="flex flex-col gap-4">
+            {msgs.map((m) => (
+              <Bubble key={m.id} msg={m} />
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-border px-4 pt-3 pb-4 shrink-0">
+          <div className="mb-2 flex flex-wrap gap-1">
+            {quickActions.slice(0, 3).map((a) => (
               <button
-                onClick={toggleAssistant}
-                aria-label="Close assistant"
-                className="ml-auto grid h-7 w-7 place-items-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+                key={a.label}
+                onClick={() => send(a.label)}
+                className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <X className="h-3.5 w-3.5" />
+                <a.icon className="h-3 w-3" />
+                {a.label}
               </button>
-            </header>
-
-            <div ref={scrollRef} className="scrollbar-elegant flex-1 overflow-y-auto px-4 py-5">
-              <div className="flex flex-col gap-4">
-                {msgs.map((m) => (
-                  <Bubble key={m.id} msg={m} />
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-border px-4 pt-3 pb-4">
-              <div className="mb-2 flex flex-wrap gap-1">
-                {quickActions.slice(0, 3).map((a) => (
-                  <button
-                    key={a.label}
-                    onClick={() => send(a.label)}
-                    className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <a.icon className="h-3 w-3" />
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-              <form
-                onSubmit={(e) => {
+            ))}
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="flex items-end gap-2 rounded-lg border border-border p-2 pl-3 transition-colors focus-within:border-foreground/20"
+          >
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   send(input);
-                }}
-                className="flex items-end gap-2 rounded-lg border border-border p-2 pl-3 transition-colors focus-within:border-foreground/20"
-              >
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      send(input);
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Ask anything about your inbox…"
-                  className="scrollbar-elegant max-h-32 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-[12.5px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim()}
-                  aria-label="Send"
-                  className={cn(
-                    "grid h-7 w-7 shrink-0 place-items-center rounded-md transition-all",
-                    input.trim()
-                      ? "bg-foreground text-background hover:opacity-80"
-                      : "text-muted-foreground/40",
-                  )}
-                >
-                  <ArrowUp className="h-3.5 w-3.5" />
-                </button>
-              </form>
-            </div>
-          </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+                }
+              }}
+              rows={1}
+              placeholder="Ask anything about your inbox…"
+              className="scrollbar-elegant max-h-32 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-[12.5px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              aria-label="Send"
+              className={cn(
+                "grid h-7 w-7 shrink-0 place-items-center rounded-md transition-all",
+                input.trim()
+                  ? "bg-foreground text-background hover:opacity-80"
+                  : "text-muted-foreground/40",
+              )}
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </aside>
   );
 }
 
