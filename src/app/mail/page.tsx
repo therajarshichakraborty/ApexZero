@@ -7,10 +7,15 @@ import { EmailReader } from "@/components/mail/email-reader";
 import { AiAssistant } from "@/components/mail/ai-assistant";
 import { ComposeModal } from "@/components/mail/compose-modal";
 import { CommandPalette } from "@/components/mail/command-palette";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
 export default function Mail() {
   return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-background select-none">
+    <div className="flex h-dvh w-screen overflow-hidden bg-background">
 
       {/* ── Sidebar ─────────────────────────────────── */}
       <div className="flex h-full w-[200px] shrink-0 flex-col border-r border-border">
@@ -34,18 +39,29 @@ export default function Mail() {
         </div>
       </div>
 
-      {/* ── Inbox list + Reader + AI ─────────────────── */}
-      <div className="flex flex-1 min-w-0 overflow-hidden">
-        <InboxList />
+      {/* ── Resizable: Inbox list + Reader + AI ──────── */}
+      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-w-0">
 
-        <div className="flex flex-1 min-w-0 overflow-hidden">
-          <EmailReader />
-          <AiAssistant />
-        </div>
-      </div>
+        {/* Inbox list panel — default 280px, min 180px, max 420px */}
+        <ResizablePanel defaultSize={280} minSize="180px" maxSize="420px" groupResizeBehavior="preserve-pixel-size">
+          <InboxList />
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Email reader + AI assistant */}
+        <ResizablePanel defaultSize={0}>
+          <div className="flex h-full min-w-0 overflow-hidden">
+            <EmailReader />
+            <AiAssistant />
+          </div>
+        </ResizablePanel>
+
+      </ResizablePanelGroup>
 
       <ComposeModal />
       <CommandPalette />
     </div>
   );
 }
+

@@ -13,7 +13,7 @@ export function InboxList() {
   const folderLabel = folder.charAt(0).toUpperCase() + folder.slice(1);
 
   return (
-    <div className="flex h-full w-[280px] shrink-0 flex-col border-r border-border bg-background">
+    <div className="flex h-full w-full flex-col border-r border-border bg-background">
 
       {/* Header */}
       <div className="px-4 pt-4 pb-3 shrink-0">
