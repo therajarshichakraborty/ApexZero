@@ -66,7 +66,7 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
       >
         <PenSquare className="h-3.5 w-3.5 shrink-0" />
         <span>Compose</span>
-        <kbd className="ml-auto text-[9.5px] font-mono text-background/50">C</kbd>
+        <kbd className="ml-auto text-[9.5px] font-mono text-background/50">press 'c'</kbd>
       </button>
 
       {/* Search */}

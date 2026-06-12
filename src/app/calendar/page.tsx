@@ -356,7 +356,7 @@ function CalSidebar({ cursor, setCursor, onOpenNewEventModal }: CalSidebarProps)
         <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-sm">
           <span className="text-[13px] font-semibold tracking-tight">C</span>
         </div>
-        <span className="text-[15px] font-semibold tracking-tight">Corsior</span>
+        <span className="text-[15px] font-semibold tracking-tight">ApexZero</span>
         <span className="ml-auto rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Beta
         </span>
