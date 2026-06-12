@@ -3,9 +3,20 @@ import Link from "next/link";
 import { UserButton } from "@/components/auth/user-button";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  Inbox, Star, Send, FileText, Archive, Trash2,
-  Sparkles, Search, PenSquare, Settings, ShieldAlert,
-  Sun, Moon, CalendarDays,
+  Inbox,
+  Star,
+  Send,
+  FileText,
+  Archive,
+  Trash2,
+  Sparkles,
+  Search,
+  PenSquare,
+  Settings,
+  ShieldAlert,
+  Sun,
+  Moon,
+  CalendarDays,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -13,14 +24,14 @@ import { cn } from "@/lib/utils";
 import { useApp, type Folder } from "@/lib/store";
 
 const NAV: { id: Folder; label: string; icon: typeof Inbox; shortcut?: string }[] = [
-  { id: "inbox",     label: "Inbox",     icon: Inbox,      shortcut: "G I" },
+  { id: "inbox", label: "Inbox", icon: Inbox, shortcut: "G I" },
   { id: "important", label: "Important", icon: Sparkles },
-  { id: "starred",   label: "Starred",   icon: Star },
-  { id: "sent",      label: "Sent",      icon: Send },
-  { id: "drafts",    label: "Drafts",    icon: FileText },
-  { id: "archive",   label: "Archive",   icon: Archive },
-  { id: "spam",      label: "Spam",      icon: ShieldAlert },
-  { id: "trash",     label: "Trash",     icon: Trash2 },
+  { id: "starred", label: "Starred", icon: Star },
+  { id: "sent", label: "Sent", icon: Send },
+  { id: "drafts", label: "Drafts", icon: FileText },
+  { id: "archive", label: "Archive", icon: Archive },
+  { id: "spam", label: "Spam", icon: ShieldAlert },
+  { id: "trash", label: "Trash", icon: Trash2 },
 ];
 
 export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
@@ -31,14 +42,14 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
   useEffect(() => setMounted(true), []);
 
   const count = (id: Folder) => {
-    if (id === "starred")   return emails.filter((e) => e.starred && e.folder !== "trash").length;
-    if (id === "important") return emails.filter((e) => e.aiPriority >= 70 && e.folder === "inbox" && e.unread).length;
+    if (id === "starred") return emails.filter((e) => e.starred && e.folder !== "trash").length;
+    if (id === "important")
+      return emails.filter((e) => e.aiPriority >= 70 && e.folder === "inbox" && e.unread).length;
     return emails.filter((e) => e.folder === id && e.unread).length;
   };
 
   return (
     <aside className="flex h-full w-full flex-col py-3 px-2">
-
       {!hideHeader && (
         <div className="flex items-center gap-2 px-2 pb-4">
           <div className="grid h-6 w-6 place-items-center rounded-md bg-foreground text-background text-[11px] font-bold">
@@ -102,10 +113,12 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
                 {item.label}
               </span>
               {c > 0 && (
-                <span className={cn(
-                  "relative z-10 ml-auto text-[10.5px] tabular-nums",
-                  active ? "font-medium text-foreground" : "text-muted-foreground/60",
-                )}>
+                <span
+                  className={cn(
+                    "relative z-10 ml-auto text-[10.5px] tabular-nums",
+                    active ? "font-medium text-foreground" : "text-muted-foreground/60",
+                  )}
+                >
                   {c}
                 </span>
               )}
@@ -143,7 +156,7 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
 
         {/* User row */}
         <div className="flex items-center gap-1.5 px-0.5">
-          <UserButton />
+          <UserButton align="start" side="top" sideOffset={12} />
           <div className="min-w-0 flex-1 overflow-hidden">
             <p className="truncate text-[11.5px] font-medium leading-tight">
               {user?.name ?? "Alex Kim"}
@@ -155,18 +168,19 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
           <button
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border/40 text-muted-foreground/60 transition-all duration-300 hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 cursor-pointer group/theme"
           >
-            {mounted && resolvedTheme === "dark"
-              ? <Sun className="h-3.5 w-3.5" />
-              : <Moon className="h-3.5 w-3.5" />
-            }
+            {mounted && resolvedTheme === "dark" ? (
+              <Sun className="h-3.5 w-3.5 transition-transform duration-500 group-hover/theme:rotate-45" />
+            ) : (
+              <Moon className="h-3.5 w-3.5 transition-transform duration-500 group-hover/theme:-rotate-12" />
+            )}
           </button>
           <button
             aria-label="Settings"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border/40 text-muted-foreground/60 transition-all duration-300 hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 cursor-pointer group/settings"
           >
-            <Settings className="h-3.5 w-3.5" />
+            <Settings className="h-3.5 w-3.5 transition-transform duration-500 group-hover/settings:rotate-45" />
           </button>
         </div>
       </div>

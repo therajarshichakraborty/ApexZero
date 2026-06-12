@@ -64,9 +64,7 @@ export function AiAssistant() {
           </div>
           <div className="flex flex-col leading-tight min-w-0">
             <span className="text-[12.5px] font-semibold truncate">Assistant</span>
-            <span className="text-[10px] text-muted-foreground truncate">
-              ApexZero AI · 1.0
-            </span>
+            <span className="text-[10px] text-muted-foreground truncate">ApexZero AI · 1.0</span>
           </div>
           <button
             onClick={toggleAssistant}

@@ -261,7 +261,6 @@ function useInView(threshold = 0.15) {
   return { ref, visible };
 }
 
-
 function Stars({ n = 5 }: { n?: number }) {
   return (
     <div className="flex gap-0.5">
@@ -456,20 +455,30 @@ export default function LandingPage() {
             ApexZero is an AI-native email client that triages your inbox, drafts your replies, and
             surfaces what matters — before you even ask.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href="/mail"
-              className="group flex h-11 items-center gap-2 rounded-full bg-foreground px-7 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:shadow-foreground/25 hover:scale-105 active:scale-95"
+              className="relative p-[1.5px] overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer group shadow-[0_10px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.05)]"
             >
-              <Zap className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-              Start for free
+              {/* Spinning gradient border */}
+              <span className="absolute inset-[-1000%] animate-[spin_6s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#e2e8f0_0%,#cbd5e1_25%,#6366f1_50%,#cbd5e1_75%,#e2e8f0_100%)] dark:bg-[conic-gradient(from_90deg_at_50%_50%,#3b82f6_0%,#8b5cf6_25%,#f43f5e_50%,#8b5cf6_75%,#3b82f6_100%)] opacity-40 group-hover:opacity-100 transition-opacity duration-500" />
+
+              <div className="relative z-10 flex h-11 items-center gap-2 rounded-full bg-neutral-950 dark:bg-white px-8 text-[13.5px] font-semibold tracking-wide text-white dark:text-neutral-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                {/* Shimmer glare sweep */}
+                <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 dark:via-neutral-950/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
+
+                <Zap className="h-3.5 w-3.5 fill-current transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                <span>Start for free</span>
+              </div>
             </Link>
             <a
               href="#features"
-              className="flex h-11 items-center gap-2 rounded-full border border-border px-7 text-[14px] font-medium text-foreground transition-all duration-200 hover:bg-muted hover:scale-105 active:scale-95"
+              className="relative overflow-hidden group flex h-11.5 items-center gap-2 rounded-full border border-border/80 bg-background/30 backdrop-blur-sm px-8 text-[13.5px] font-medium text-foreground/80 hover:text-foreground shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:bg-muted/40 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer"
             >
-              See features{" "}
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <span className="relative z-10 flex items-center gap-2">
+                See features{" "}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </span>
             </a>
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
@@ -676,13 +685,20 @@ export default function LandingPage() {
                   </ul>
                   <Link
                     href={p.ctaHref}
-                    className={`mt-8 flex h-10 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all duration-200 hover:scale-105 active:scale-95 ${
+                    className={`relative overflow-hidden group mt-8 flex h-10 items-center justify-center rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${
                       p.highlight
-                        ? "bg-background text-foreground hover:opacity-90"
-                        : "bg-foreground text-background hover:opacity-80"
+                        ? "bg-background text-foreground border border-foreground/10 hover:bg-background/90 shadow-[0_4px_12px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.2)]"
+                        : "bg-foreground text-background border border-neutral-800 dark:border-neutral-200/50 hover:bg-foreground/90 shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.4)]"
                     }`}
                   >
-                    {p.cta}
+                    {/* Glint sweep */}
+                    <div
+                      className={`absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent ${p.highlight ? "via-black/5 dark:via-white/10" : "via-white/20 dark:via-neutral-950/10"} to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none`}
+                    />
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      {p.cta}{" "}
+                      <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                    </span>
                   </Link>
                 </div>
               </FadeIn>
@@ -717,12 +733,16 @@ export default function LandingPage() {
                 No sign-up. No credit card. No friction. Just open the app and experience what email
                 should feel like.
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
                 <Link
                   href="/mail"
-                  className="flex h-11 items-center gap-2 rounded-full bg-background px-7 text-[14px] font-semibold text-foreground transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
+                  className="relative overflow-hidden group flex h-11.5 items-center gap-2 rounded-full bg-background px-8 text-[13.5px] font-semibold tracking-wide text-foreground border border-foreground/10 shadow-[0_10px_30px_rgba(0,0,0,0.1),inset_0_1.5px_0_rgba(255,255,255,0.2)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer"
                 >
-                  <PenSquare className="h-4 w-4" /> Open ApexZero
+                  {/* Shimmer glare sweep */}
+                  <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-neutral-950/5 dark:via-white/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
+
+                  <PenSquare className="relative z-10 h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="relative z-10">Open ApexZero</span>
                 </Link>
               </div>
             </div>

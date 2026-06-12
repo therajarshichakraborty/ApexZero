@@ -5,7 +5,8 @@ import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 export function InboxList() {
-  const { selectedId, select, toggleStar, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp();
+  const { selectedId, select, toggleStar, search, setSearch, folder, sidebarOpen, toggleSidebar } =
+    useApp();
   const visible = useVisibleEmails();
   const mounted = useMounted();
   const groups = groupByDay(visible);
@@ -22,13 +23,15 @@ export function InboxList() {
                 "grid h-6 w-6 place-items-center rounded-md transition-colors",
                 !sidebarOpen
                   ? "text-foreground bg-muted"
-                  : "text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground/60 hover:bg-muted hover:text-foreground",
               )}
               title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
             >
               <PanelLeft className="h-3.5 w-3.5" />
             </button>
-            <h1 className="text-[13px] font-semibold tracking-tight truncate min-w-0">{folderLabel}</h1>
+            <h1 className="text-[13px] font-semibold tracking-tight truncate min-w-0">
+              {folderLabel}
+            </h1>
           </div>
           <span className="text-[11px] tabular-nums text-muted-foreground/60">
             {visible.length}
@@ -74,7 +77,7 @@ export function InboxList() {
                   />
                 ))}
               </div>
-            )
+            ),
           )
         )}
       </div>
@@ -83,7 +86,10 @@ export function InboxList() {
 }
 
 function EmailRow({
-  email, active, onSelect, onStar,
+  email,
+  active,
+  onSelect,
+  onStar,
 }: {
   email: Email;
   active: boolean;
@@ -115,14 +121,18 @@ function EmailRow({
         {/* Row 1: sender + time */}
         <div className="flex items-center gap-2 mb-1 min-w-0">
           {/* Tiny unread dot */}
-          <span className={cn(
-            "h-1.5 w-1.5 shrink-0 rounded-full transition-opacity",
-            email.unread ? "bg-foreground" : "opacity-0",
-          )} />
-          <span className={cn(
-            "flex-1 truncate text-[12.5px] leading-none",
-            email.unread ? "font-semibold text-foreground" : "font-medium text-foreground/65",
-          )}>
+          <span
+            className={cn(
+              "h-1.5 w-1.5 shrink-0 rounded-full transition-opacity",
+              email.unread ? "bg-foreground" : "opacity-0",
+            )}
+          />
+          <span
+            className={cn(
+              "flex-1 truncate text-[12.5px] leading-none",
+              email.unread ? "font-semibold text-foreground" : "font-medium text-foreground/65",
+            )}
+          >
             {email.senderName}
           </span>
           <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground/50 @[max-width:240px]:hidden">
@@ -131,10 +141,12 @@ function EmailRow({
         </div>
 
         {/* Row 2: subject */}
-        <p className={cn(
-          "pl-3.5 truncate text-[12px] leading-snug mb-0.5 min-w-0",
-          email.unread ? "text-foreground/85" : "text-muted-foreground",
-        )}>
+        <p
+          className={cn(
+            "pl-3.5 truncate text-[12px] leading-snug mb-0.5 min-w-0",
+            email.unread ? "text-foreground/85" : "text-muted-foreground",
+          )}
+        >
           {email.subject}
         </p>
 
@@ -147,7 +159,10 @@ function EmailRow({
           <span
             role="button"
             tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); onStar(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onStar();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -174,13 +189,15 @@ function EmailRow({
 function ScoreChip({ score, className }: { score: number; className?: string }) {
   if (score < 60) return null; // only show for meaningful scores
   return (
-    <span className={cn(
-      "shrink-0 rounded px-1.5 py-px text-[9.5px] font-medium tabular-nums border",
-      score >= 85
-        ? "text-foreground/80 border-foreground/20 bg-foreground/5"
-        : "text-muted-foreground border-border/60",
-      className,
-    )}>
+    <span
+      className={cn(
+        "shrink-0 rounded px-1.5 py-px text-[9.5px] font-medium tabular-nums border",
+        score >= 85
+          ? "text-foreground/80 border-foreground/20 bg-foreground/5"
+          : "text-muted-foreground border-border/60",
+        className,
+      )}
+    >
       {score}
     </span>
   );

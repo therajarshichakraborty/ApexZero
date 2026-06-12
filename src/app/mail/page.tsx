@@ -9,11 +9,7 @@ import { AiAssistant } from "@/components/mail/ai-assistant";
 import { ComposeModal } from "@/components/mail/compose-modal";
 import { CommandPalette } from "@/components/mail/command-palette";
 import { useApp } from "@/lib/store";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 export default function Mail() {
   const { sidebarOpen, assistantOpen } = useApp();
@@ -30,7 +26,6 @@ export default function Mail() {
 
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-background">
-
       {/* ── Sidebar ─────────────────────────────────── */}
       {sidebarOpen && (
         <div className="flex h-full w-[200px] shrink-0 flex-col border-r border-border bg-background">
@@ -40,7 +35,6 @@ export default function Mail() {
 
       {/* ── Resizable: Inbox list + Reader + AI ──────── */}
       <ResizablePanelGroup orientation="horizontal" className="flex-1 min-w-0">
-
         {/* Inbox list panel */}
         <ResizablePanel defaultSize="22%" minSize={0}>
           <InboxList />
@@ -61,7 +55,6 @@ export default function Mail() {
             </ResizablePanel>
           </>
         )}
-
       </ResizablePanelGroup>
 
       <ComposeModal />
@@ -69,4 +62,3 @@ export default function Mail() {
     </div>
   );
 }
-

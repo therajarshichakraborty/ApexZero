@@ -10,12 +10,12 @@ function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-8 w-8 rounded-full border border-border" />;
+  if (!mounted) return <div className="h-8.5 w-8.5 rounded-full border border-border/60" />;
   return (
     <button
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       aria-label="Toggle theme"
-      className="grid h-8 w-8 place-items-center rounded-full border border-border text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground hover:scale-110 active:scale-95"
+      className="grid h-8.5 w-8.5 place-items-center rounded-full border border-border/60 bg-background/50 text-muted-foreground transition-all duration-300 hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
     >
       {resolvedTheme === "dark" ? (
         <Sun className="h-3.5 w-3.5" />
@@ -46,12 +46,13 @@ export function SiteHeader({ showNav = true, minimal = false }: SiteHeaderProps)
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b border-border backdrop-blur-xl transition-all duration-300 ${
-        scrolled ? "bg-background/95 shadow-sm shadow-border" : "bg-background/80"
+      className={`sticky top-3 z-50 mx-auto w-[92%] md:w-[75%] max-w-5xl transition-all duration-300 rounded-full ${
+        scrolled
+          ? "bg-background/50 border-border/40 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.03)]"
+          : "bg-transparent border-transparent"
       }`}
     >
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-8 px-6">
-        {/* Brand */}
+      <div className="flex h-13 w-full items-center gap-8 px-6">
         <Link
           href="/"
           className="flex items-center gap-2 font-semibold tracking-tight transition-opacity hover:opacity-70"
@@ -81,13 +82,23 @@ export function SiteHeader({ showNav = true, minimal = false }: SiteHeaderProps)
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
           <ThemeToggle />
-          {!minimal && <UserButton />}
+          {!minimal && <UserButton align="end" side="bottom" sideOffset={10} />}
           {!minimal && (
             <Link
               href="/mail"
-              className="flex h-8 items-center gap-1.5 rounded-full bg-foreground px-4 text-[13px] font-medium text-background transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+              className="relative p-[1px] overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer group shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
             >
-              Open App <ArrowRight className="h-3 w-3" />
+              {/* Spinning gradient border */}
+              <span className="absolute inset-[-1000%] animate-[spin_5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#171717_0%,#737373_25%,#a3a3a3_50%,#737373_75%,#171717_100%)] dark:bg-[conic-gradient(from_90deg_at_50%_50%,#ffffff_0%,#a3a3a3_25%,#404040_50%,#a3a3a3_75%,#ffffff_100%)] opacity-35 group-hover:opacity-100 transition-opacity duration-500" />
+
+              <div className="relative z-10 flex h-8 items-center gap-1.5 rounded-full bg-neutral-950 dark:bg-white px-4.5 text-[12px] font-semibold tracking-wide text-white dark:text-neutral-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                {/* Shimmer sweep */}
+                <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/15 dark:via-neutral-950/5 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
+                <span className="flex items-center gap-1.5">
+                  Open App{" "}
+                  <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </span>
+              </div>
             </Link>
           )}
         </div>

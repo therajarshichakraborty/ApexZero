@@ -1,9 +1,20 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Reply, ReplyAll, Forward, Archive, Trash2, Star,
-  Sparkles, Languages, Wand2, MoreHorizontal, Paperclip,
-  Inbox, PanelRight, Send,
+  Reply,
+  ReplyAll,
+  Forward,
+  Archive,
+  Trash2,
+  Star,
+  Sparkles,
+  Languages,
+  Wand2,
+  MoreHorizontal,
+  Paperclip,
+  Inbox,
+  PanelRight,
+  Send,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { type Email } from "@/lib/mock-data";
@@ -16,8 +27,11 @@ function ReceivedAt({ date }: { date: Date }) {
   return (
     <span suppressHydrationWarning>
       {date.toLocaleString([], {
-        weekday: "short", month: "short", day: "numeric",
-        hour: "numeric", minute: "2-digit",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
       })}
     </span>
   );
@@ -51,7 +65,6 @@ export function EmailReader() {
             {/* Article */}
             <article className="scrollbar-elegant flex-1 overflow-y-auto">
               <div className="mx-auto max-w-[640px] px-8 pt-10 pb-28">
-
                 {/* Subject */}
                 <h1 className="text-[20px] font-semibold leading-snug tracking-tight text-foreground mb-5">
                   {email.subject}
@@ -142,7 +155,11 @@ export function EmailReader() {
 }
 
 function Toolbar({
-  email, onArchive, onDelete, onStar, onToggleAssistant,
+  email,
+  onArchive,
+  onDelete,
+  onStar,
+  onToggleAssistant,
 }: {
   email: Email;
   onArchive: () => void;
@@ -159,7 +176,12 @@ function Toolbar({
       <Sep />
       <Btn icon={Archive} label="Archive" onClick={onArchive} />
       <Btn icon={Trash2} label="Delete" onClick={onDelete} />
-      <Btn icon={Star} label={email.starred ? "Unstar" : "Star"} active={email.starred} onClick={onStar} />
+      <Btn
+        icon={Star}
+        label={email.starred ? "Unstar" : "Star"}
+        active={email.starred}
+        onClick={onStar}
+      />
       <Sep />
 
       {/* AI group */}
@@ -176,8 +198,16 @@ function Toolbar({
   );
 }
 
-function Btn({ icon: Icon, label, onClick, active }: {
-  icon: typeof Reply; label: string; onClick?: () => void; active?: boolean;
+function Btn({
+  icon: Icon,
+  label,
+  onClick,
+  active,
+}: {
+  icon: typeof Reply;
+  label: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   return (
     <button
@@ -214,8 +244,10 @@ function Sep() {
 
 function AiSummary({ email }: { email: Email }) {
   const summaries: Record<string, string> = {
-    "email-1": "Elena needs your input on Q4 priorities — billing migration, identity unification, and internal tooling. Reply by Friday to keep Monday kickoff.",
-    "email-3": "Marcus's virtualizer benchmarks landed: 3.2 ms render at 10k messages, memory down 64%. PR ready, targeting Tuesday ship.",
+    "email-1":
+      "Elena needs your input on Q4 priorities — billing migration, identity unification, and internal tooling. Reply by Friday to keep Monday kickoff.",
+    "email-3":
+      "Marcus's virtualizer benchmarks landed: 3.2 ms render at 10k messages, memory down 64%. PR ready, targeting Tuesday ship.",
     "email-6": "Amelia (a16z) is asking for a 30-min intro call Wed or Thu, referred by James.",
   };
   const text = summaries[email.id];
@@ -246,7 +278,9 @@ function Paragraph({ text }: { text: string }) {
     <p className="mt-4 whitespace-pre-line text-[13.5px] leading-[1.8] text-foreground/85 first:mt-0">
       {parts.map((p, i) =>
         p.startsWith("**") ? (
-          <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
+          <strong key={i} className="font-semibold text-foreground">
+            {p.slice(2, -2)}
+          </strong>
         ) : (
           <span key={i}>{p}</span>
         ),
@@ -265,10 +299,13 @@ function ReplyComposer({ senderName }: { senderName: string }) {
   ];
 
   return (
-    <div className={cn(
-      "relative mt-16 rounded-2xl border border-border/30 bg-muted/5 backdrop-blur-xl transition-all duration-500 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.01)] hover:border-border/50",
-      isFocused && "border-foreground/10 bg-background/95 ring-1 ring-foreground/5 shadow-[0_24px_70px_-10px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.02)]"
-    )}>
+    <div
+      className={cn(
+        "relative mt-16 rounded-2xl border border-border/30 bg-muted/5 backdrop-blur-xl transition-all duration-500 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.01)] hover:border-border/50",
+        isFocused &&
+          "border-foreground/10 bg-background/95 ring-1 ring-foreground/5 shadow-[0_24px_70px_-10px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.02)]",
+      )}
+    >
       {/* Textarea */}
       <textarea
         value={text}
@@ -294,7 +331,9 @@ function ReplyComposer({ senderName }: { senderName: string }) {
               onClick={() => {
                 setText(s);
                 setTimeout(() => {
-                  const ta = document.querySelector("textarea[placeholder^='Reply to']") as HTMLTextAreaElement;
+                  const ta = document.querySelector(
+                    "textarea[placeholder^='Reply to']",
+                  ) as HTMLTextAreaElement;
                   if (ta) {
                     ta.style.height = "auto";
                     ta.style.height = `${ta.scrollHeight}px`;
@@ -310,13 +349,22 @@ function ReplyComposer({ senderName }: { senderName: string }) {
 
         {/* Right Side: Actions */}
         <div className="flex items-center gap-2 ml-auto">
-          <button className="flex items-center gap-1.5 h-8 px-5 rounded-full bg-background text-[10.5px] font-bold tracking-wider text-black dark:text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-background/90 hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all cursor-pointer dark:border-[1px] dark:border-neutral-700">
-            <Sparkles className="h-3.5 w-3.5 text-black dark:text-white fill-black dark:fill-white" />
-            <span>AI Draft</span>
+          <button className="relative p-[1px] overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer group shadow-[0_2px_12px_rgba(99,102,241,0.08)] hover:shadow-[0_4px_20px_rgba(99,102,241,0.18)]">
+            {/* Spinning AI indigo gradient border */}
+            <span className="absolute inset-[-1000%] animate-[spin_5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#818cf8_0%,#c084fc_25%,#6366f1_50%,#c084fc_75%,#818cf8_100%)] opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+
+            <div className="relative z-10 flex items-center gap-1.5 h-7.5 rounded-full bg-indigo-50/80 dark:bg-indigo-950/60 px-4 text-[10.5px] font-bold tracking-wider text-indigo-600 dark:text-indigo-300">
+              {/* Soft inner glint */}
+              <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/30 dark:via-indigo-400/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
+              <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-300 fill-indigo-600/10 dark:fill-indigo-300/10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+              <span>AI Draft</span>
+            </div>
           </button>
-          <button className="flex items-center gap-1.5 h-8 px-5 rounded-full bg-foreground text-[10.5px] font-bold tracking-wider text-background shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-foreground/90 hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.97] transition-all cursor-pointer">
+          <button className="relative overflow-hidden group flex items-center gap-1.5 h-8 px-4.5 rounded-full bg-foreground text-[10.5px] font-bold tracking-wider text-background shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-foreground/90 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer">
+            {/* Shimmer sweep */}
+            <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 dark:via-neutral-950/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
             <span>Send</span>
-            <Send className="h-3 w-3 fill-current" />
+            <Send className="h-3 w-3 fill-current transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         </div>
       </div>

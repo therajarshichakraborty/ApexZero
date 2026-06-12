@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/site-header";
 export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen w-screen flex-col bg-background antialiased overflow-hidden">
-
       <style>{`
         @keyframes login-fade-up {
           from { opacity: 0; transform: translateY(20px); }
@@ -41,7 +40,6 @@ export default function LoginPage() {
           <LoginForm />
         </div>
       </div>
-
     </div>
   );
 }
