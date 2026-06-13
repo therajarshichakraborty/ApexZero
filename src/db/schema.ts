@@ -93,7 +93,7 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 
-/* Corsair configs */
+/* Corsair tables */
 export const corsairIntegrations = pgTable('corsair_integrations', {
     id: text('id').primaryKey(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
