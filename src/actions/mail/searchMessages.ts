@@ -1,14 +1,16 @@
 "use server";
 
-import { corsair } from "../../../corsair";
+import { getCorsairWithTenant } from "./getInbox";
 
-export async function searchMessages(query: string) {
-    return await corsair.gmail.db.messages.search({
+export async function searchMessages() {
+    const client = await getCorsairWithTenant();
+    return await client.gmail.db.messages.search({
         data: {
-            subject: {
-                contains: query,
-            },
+            from:{
+                contains:"springboard@infosys.com"
+            }
         },
         limit: 20,
+        offset:0
     });
 }

@@ -1,10 +1,15 @@
 import { AnimatePresence, motion } from "motion/react";
 import { X, Paperclip, Image as ImageIcon, Clock, Sparkles, Minus } from "lucide-react";
 import { useApp } from "@/lib/store";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { sendEmail } from "@/actions/mail/getInbox";
 
 export function ComposeModal() {
   const { composeOpen, closeCompose } = useApp();
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (!composeOpen) return;
@@ -14,6 +19,22 @@ export function ComposeModal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [composeOpen, closeCompose]);
+
+  const handleSend = async () => {
+    if (!to) return;
+    setIsSending(true);
+    try {
+      await sendEmail({ to, subject, body });
+      setTo("");
+      setSubject("");
+      setBody("");
+      closeCompose();
+    } catch (error) {
+      console.error("Failed to send email:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -64,18 +85,24 @@ export function ComposeModal() {
                   <input
                     autoFocus
                     placeholder="elena@stripe.com"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
                     className="h-9 w-full bg-transparent text-[13.5px] placeholder:text-muted-foreground/70 focus:outline-none"
                   />
                 </Row>
                 <Row label="Subject">
                   <input
                     placeholder="Quick thought on the roadmap"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
                     className="h-9 w-full bg-transparent text-[13.5px] font-medium placeholder:text-muted-foreground/70 focus:outline-none"
                   />
                 </Row>
                 <textarea
                   rows={10}
                   placeholder="Write your message…"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
                   className="scrollbar-elegant min-h-[220px] w-full resize-none bg-transparent px-5 py-4 text-[14px] leading-[1.75] placeholder:text-muted-foreground/70 focus:outline-none"
                 />
               </div>
@@ -94,8 +121,12 @@ export function ComposeModal() {
                   >
                     Save draft
                   </button>
-                  <button className="h-8 rounded-lg bg-primary px-3.5 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                    Send
+                  <button
+                    onClick={handleSend}
+                    disabled={isSending || !to}
+                    className="h-8 rounded-lg bg-primary px-3.5 text-[12.5px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isSending ? "Sending..." : "Send"}
                   </button>
                 </div>
               </footer>

@@ -1,6 +1,6 @@
 import { createCorsair } from "corsair";
 import { gmail } from "@corsair-dev/gmail";
-import { env } from "./src/lib/env.config";
+import { env } from "@/lib/env.config";
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
@@ -11,5 +11,5 @@ export const corsair = createCorsair({
     plugins: [gmail()],
     database: pool,
     kek: env.CORSAIR_KEK!,
-    multiTenancy: false,
+    multiTenancy: true,
 });
