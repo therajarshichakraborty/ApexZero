@@ -233,6 +233,21 @@
   animation: float-fast 15s ease-in-out infinite;
 }
 
+@keyframes bg-breathing {
+  0%,
+  100% {
+    transform: scale(1.05) translate(0px, 0px);
+  }
+  50% {
+    transform: scale(1.01) translate(-10px, -5px);
+  }
+}
+
+@utility animate-bg-breathing {
+  animation: bg-breathing 45s ease-in-out infinite;
+}
+
+
 html.overflow-hidden,
 body.overflow-hidden {
   overflow: hidden !important;
