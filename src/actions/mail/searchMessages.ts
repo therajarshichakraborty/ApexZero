@@ -7,7 +7,7 @@ export async function searchMessages() {
   return await client.gmail.db.messages.search({
     data: {
       from: {
-        contains: "springboard@infosys.com",
+        contains: "[EMAIL_ADDRESS]",
       },
     },
     limit: 20,
