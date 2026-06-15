@@ -81,7 +81,7 @@ export function InboxList() {
                     email={email}
                     active={email.id === selectedId}
                     onSelect={() => select(email.id)}
-                    onStar={() => toggleStar(email.id)}
+                    onStar={() => toggleStar(email.id, email.starred)}
                   />
                 ))}
               </div>

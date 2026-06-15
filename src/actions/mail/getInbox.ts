@@ -24,10 +24,49 @@ export async function getInboxMessages() {
   });
 }
 
+
+// export async function getFullMessagesByLabel(folder: string, searchQuery?: string) {
+//   const client = await getCorsairWithTenant();
+  
+//   // Base query for the folder
+//   let q = "";
+//   switch(folder) {
+//     case "inbox": q = "in:inbox"; break;
+//     case "important": q = "is:important"; break;
+//     case "starred": q = "is:starred"; break;
+//     case "sent": q = "in:sent"; break;
+//     case "drafts": q = "in:drafts"; break;
+//     case "archive": q = "-in:inbox -in:trash -in:spam"; break;
+//     case "spam": q = "in:spam"; break;
+//     case "trash": q = "in:trash"; break;
+//   }
+
+//   if (searchQuery) {
+//     q = q ? `${q} ${searchQuery}` : searchQuery;
+//   }
+
+//   const result = await client.gmail.api.messages.list({
+//     q,
+//     maxResults: 20,
+//   });
+
+//   if (!result.messages) return [];
+
+//   const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
+
+//   // Fetch full messages concurrently
+//   const fullMessages = await Promise.all(
+//     result.messages.map((m) =>
+//       client.gmail.api.messages.get({ id: m.id!, format: "full" })
+//     )
+//   );
+
+//   return fullMessages.map((m) => gmailMessageToEmail(m as any));
+// }
+
 export async function getFullMessagesByLabel(folder: string, searchQuery?: string) {
   const client = await getCorsairWithTenant();
   
-  // Base query for the folder
   let q = "";
   switch(folder) {
     case "inbox": q = "in:inbox"; break;
@@ -53,23 +92,38 @@ export async function getFullMessagesByLabel(folder: string, searchQuery?: strin
 
   const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
 
-  // Fetch full messages concurrently
-  const fullMessages = await Promise.all(
-    result.messages.map((m) =>
-      client.gmail.api.messages.get({ id: m.id!, format: "full" })
-    )
-  );
+  // Fetch metadata in small chunks to avoid triggering Google's rate limits,
+  // which causes the googleapis SDK to exponentially backoff for ~30 seconds.
+  const metadataMessages = [];
+  const chunkSize = 3;
+  for (let i = 0; i < result.messages.length; i += chunkSize) {
+    const chunk = result.messages.slice(i, i + chunkSize);
+    const resolved = await Promise.all(
+      chunk.map((m) =>
+        client.gmail.api.messages.get({
+          id: m.id!,
+          format: "full",
+          metadataHeaders: ["From", "To", "Subject", "Date"],
+        })
+      )
+    );
+    metadataMessages.push(...resolved);
+  }
 
-  return fullMessages.map((m) => gmailMessageToEmail(m as any));
+  return metadataMessages.map((m) => gmailMessageToEmail(m as any));
 }
+
 
 export async function getMessage(messageId: string) {
   const client = await getCorsairWithTenant();
-  return await client.gmail.api.messages.get({
+  const res = await client.gmail.api.messages.get({
     id: messageId,
-    format: "full",
+    format: 'full',
   });
+  const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
+  return gmailMessageToEmail(res as any);
 }
+
 
 function buildRaw(to: string, subject: string, body: string): string {
   const message = [

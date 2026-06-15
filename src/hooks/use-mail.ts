@@ -8,6 +8,7 @@ import {
   trashMessage,
   sendEmail as sendEmailAction,
   markReadMessage,
+  getMessage,
 } from "@/actions/mail/getInbox";
 import type { Email } from "@/lib/mock-data";
 
@@ -17,6 +18,16 @@ export function useEmails(folder: string, search: string = "") {
     queryFn: () => getFullMessagesByLabel(folder, search),
   });
 }
+
+export function useEmailBody(messageId: string | null) {
+  return useQuery({
+    queryKey: ['email-body', messageId],
+    queryFn: () => getMessage(messageId!),
+    enabled: !!messageId,        // only fetches when messageId exists
+    staleTime: 1000 * 60 * 5,   // cache for 5 minutes
+  });
+}
+
 
 export function useEmailMutations() {
   const queryClient = useQueryClient();
