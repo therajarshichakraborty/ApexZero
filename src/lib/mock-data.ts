@@ -2,6 +2,7 @@ export type EmailLabel = "work" | "personal" | "finance" | "newsletter" | "trave
 
 export interface Email {
   id: string;
+  threadId?: string;
   senderName: string;
   senderEmail: string;
   avatarColor: string;
@@ -16,6 +17,7 @@ export interface Email {
   aiPriority: number;
   folder: "inbox" | "sent" | "drafts" | "archive" | "spam" | "trash";
   attachments?: { name: string; size: string; type: string }[];
+  to?: string;
 }
 
 const palette = [
