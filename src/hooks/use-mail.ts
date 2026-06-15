@@ -16,32 +16,33 @@ export function useEmails(folder: string, search: string = "") {
   return useQuery({
     queryKey: ["emails", folder, search],
     queryFn: () => getFullMessagesByLabel(folder, search),
-  });
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  })
 }
 
 export function useEmailBody(messageId: string | null) {
   return useQuery({
-    queryKey: ['email-body', messageId],
+    queryKey: ["email-body", messageId],
     queryFn: () => getMessage(messageId!),
-    enabled: !!messageId,        // only fetches when messageId exists
-    staleTime: 1000 * 60 * 5,   // cache for 5 minutes
+    enabled: !!messageId, // only fetches when messageId exists
+    staleTime: 1000 * 60 * 5, // cache for 5 minutes
   });
 }
-
 
 export function useEmailMutations() {
   const queryClient = useQueryClient();
 
   const starMutation = useMutation({
-    mutationFn: ({ id, star }: { id: string; star: boolean }) =>
-      toggleStarMessage(id, star),
+    mutationFn: ({ id, star }: { id: string; star: boolean }) => toggleStarMessage(id, star),
     onMutate: async ({ id, star }) => {
       queryClient.setQueriesData({ queryKey: ["emails"] }, (old: Email[] | undefined) => {
         if (!old) return old;
         return old.map((e) => (e.id === id ? { ...e, starred: star } : e));
       });
     },
-    onSettled: () => {
+    onError: () => {
       queryClient.invalidateQueries({ queryKey: ["emails"] });
     },
   });

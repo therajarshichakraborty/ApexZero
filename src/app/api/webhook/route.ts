@@ -5,6 +5,6 @@ export async function POST(request: Request) {
   const headers = Object.fromEntries(request.headers);
   const body = await request.json();
   const result = await processWebhook(corsair, headers, body);
-  console.log('Webhook event received:', result);
+  console.log("Webhook event received:", result);
   return result.response;
 }

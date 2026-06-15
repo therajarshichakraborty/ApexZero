@@ -65,10 +65,6 @@ export interface GmailListResponse {
   resultSizeEstimate?: number;
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────────────────────
-
 const headerValue = (headers: GmailHeader[] | undefined, name: string): string => {
   if (!headers) return "";
   const h = headers.find((x) => x.name?.toLowerCase() === name.toLowerCase());
@@ -77,7 +73,9 @@ const headerValue = (headers: GmailHeader[] | undefined, name: string): string =
 
 const headerValues = (headers: GmailHeader[] | undefined, name: string): string[] => {
   if (!headers) return [];
-  return headers.filter((x) => x.name?.toLowerCase() === name.toLowerCase()).map((x) => x.value ?? "");
+  return headers
+    .filter((x) => x.name?.toLowerCase() === name.toLowerCase())
+    .map((x) => x.value ?? "");
 };
 
 const decodeBase64Url = (input: string | undefined): string => {
@@ -101,10 +99,52 @@ const decodeBase64Url = (input: string | undefined): string => {
   }
 };
 
-const stripHtml = (html: string): string =>
-  html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+function removeTagContent(html: string, tag: string): string {
+  let result = "";
+  let i = 0;
+  const lowerHtml = html.toLowerCase();
+  const openTag = `<${tag}`;
+  const closeTag = `</${tag}>`;
+
+  while (i < html.length) {
+    const start = lowerHtml.indexOf(openTag, i);
+    if (start === -1) {
+      result += html.substring(i);
+      break;
+    }
+
+    const nextChar = lowerHtml[start + openTag.length];
+    if (
+      nextChar !== ">" &&
+      nextChar !== " " &&
+      nextChar !== "\n" &&
+      nextChar !== "\r" &&
+      nextChar !== "\t"
+    ) {
+      result += html.substring(i, start + openTag.length);
+      i = start + openTag.length;
+      continue;
+    }
+
+    result += html.substring(i, start);
+
+    const end = lowerHtml.indexOf(closeTag, start);
+    if (end === -1) {
+      break;
+    }
+    i = end + closeTag.length;
+  }
+  return result;
+}
+
+const stripHtml = (html: string): string => {
+  let safeHtml = html;
+
+  // Safely remove style and script tags without regex backtracking
+  safeHtml = removeTagContent(safeHtml, "style");
+  safeHtml = removeTagContent(safeHtml, "script");
+
+  return safeHtml
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<[^>]+>/g, "")
@@ -117,6 +157,7 @@ const stripHtml = (html: string): string =>
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+};
 
 // Walk a multipart payload and return the first usable text body we find.
 const extractBody = (payload: GmailMessagePart | undefined): { text: string; html: string } => {
@@ -138,7 +179,10 @@ const extractBody = (payload: GmailMessagePart | undefined): { text: string; htm
   return out;
 };
 
-const collectAttachments = (payload: GmailMessagePart | undefined, depth = 0): NonNullable<Email["attachments"]> => {
+const collectAttachments = (
+  payload: GmailMessagePart | undefined,
+  depth = 0,
+): NonNullable<Email["attachments"]> => {
   if (!payload || depth > 6) return [];
   const out: NonNullable<Email["attachments"]> = [];
   const filename = payload.filename;
@@ -223,7 +267,8 @@ const labelIdsToAppLabels = (labelIds: string[] | undefined): EmailLabel[] => {
     const lower = id.toLowerCase();
     if (lower.includes("work")) out.add("work");
     else if (lower.includes("personal")) out.add("personal");
-    else if (lower.includes("finance") || lower.includes("money") || lower.includes("bill")) out.add("finance");
+    else if (lower.includes("finance") || lower.includes("money") || lower.includes("bill"))
+      out.add("finance");
     else if (lower.includes("newsletter") || lower.includes("promotion")) out.add("newsletter");
     else if (lower.includes("travel")) out.add("travel");
     else if (lower.includes("product")) out.add("product");
@@ -254,12 +299,16 @@ const estimatePriority = (m: GmailMessage): number => {
  * Convert a Gmail message (from `messages.get` with format=full or metadata)
  * to the Email shape the UI uses. Safe to call on partial responses.
  */
-export function gmailMessageToEmail(m: GmailMessage, opts?: { threadPosition?: "first" | "last" }): Email {
+export function gmailMessageToEmail(
+  m: GmailMessage,
+  opts?: { threadPosition?: "first" | "middle" | "last" },
+): Email {
   const id = m.id ?? `unknown-${Math.random().toString(36).slice(2)}`;
   const headers = m.payload?.headers ?? [];
-  const fromRaw = opts?.threadPosition === "last"
-    ? headerValues(headers, "From").slice(-1)[0] ?? headerValue(headers, "From")
-    : headerValue(headers, "From");
+  const fromRaw =
+    opts?.threadPosition === "last"
+      ? (headerValues(headers, "From").slice(-1)[0] ?? headerValue(headers, "From"))
+      : headerValue(headers, "From");
   const { name: senderName, email: senderEmail } = displayNameFromAddress(fromRaw);
   const subject = headerValue(headers, "Subject") || "(no subject)";
   const toHeader = headerValue(headers, "To");

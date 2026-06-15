@@ -5,7 +5,7 @@ import { auth } from "@/utils/auth";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
@@ -21,10 +21,9 @@ export async function POST(
   return NextResponse.json(result);
 }
 
-
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {

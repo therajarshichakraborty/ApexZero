@@ -29,7 +29,7 @@ export function CommandPalette() {
     select,
     folder,
   } = useApp();
-  
+
   const { data: emails = [] } = useEmails(folder);
 
   useEffect(() => {

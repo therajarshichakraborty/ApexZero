@@ -5,7 +5,7 @@ import { auth } from "@/utils/auth";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
