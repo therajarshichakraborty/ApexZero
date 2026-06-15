@@ -1,14 +1,15 @@
 import { Star, Search, PanelLeft } from "lucide-react";
-import { useApp, useVisibleEmails } from "@/lib/store";
+import { useApp } from "@/lib/store";
 import { formatTime, groupByDay, type Email } from "@/lib/mock-data";
-import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
+import { useEmails, useEmailMutations } from "@/hooks/use-mail";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export function InboxList() {
-  const { selectedId, select, toggleStar, search, setSearch, folder, sidebarOpen, toggleSidebar } =
-    useApp();
-  const visible = useVisibleEmails();
-  const mounted = useMounted();
+  const { selectedId, select, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp();
+  const { data: visible = [], isPending, isError } = useEmails(folder, search);
+  const { toggleStar } = useEmailMutations();
   const groups = groupByDay(visible);
   const folderLabel = folder.charAt(0).toUpperCase() + folder.slice(1);
 
@@ -52,8 +53,15 @@ export function InboxList() {
 
       {/* Email rows */}
       <div className="scrollbar-elegant flex-1 overflow-y-auto">
-        {!mounted ? (
+        {isPending ? (
           <Skeleton />
+        ) : isError ? (
+          <div className="mt-24 flex flex-col items-center gap-2 px-8 text-center">
+            <p className="text-[12.5px] font-medium text-destructive">Failed to load emails</p>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/connect">Connect Gmail</Link>
+            </Button>
+          </div>
         ) : visible.length === 0 ? (
           <Empty />
         ) : (

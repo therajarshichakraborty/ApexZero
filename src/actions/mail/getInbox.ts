@@ -24,6 +24,45 @@ export async function getInboxMessages() {
   });
 }
 
+export async function getFullMessagesByLabel(folder: string, searchQuery?: string) {
+  const client = await getCorsairWithTenant();
+  
+  // Base query for the folder
+  let q = "";
+  switch(folder) {
+    case "inbox": q = "in:inbox"; break;
+    case "important": q = "is:important"; break;
+    case "starred": q = "is:starred"; break;
+    case "sent": q = "in:sent"; break;
+    case "drafts": q = "in:drafts"; break;
+    case "archive": q = "-in:inbox -in:trash -in:spam"; break;
+    case "spam": q = "in:spam"; break;
+    case "trash": q = "in:trash"; break;
+  }
+
+  if (searchQuery) {
+    q = q ? `${q} ${searchQuery}` : searchQuery;
+  }
+
+  const result = await client.gmail.api.messages.list({
+    q,
+    maxResults: 20,
+  });
+
+  if (!result.messages) return [];
+
+  const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
+
+  // Fetch full messages concurrently
+  const fullMessages = await Promise.all(
+    result.messages.map((m) =>
+      client.gmail.api.messages.get({ id: m.id!, format: "full" })
+    )
+  );
+
+  return fullMessages.map((m) => gmailMessageToEmail(m as any));
+}
+
 export async function getMessage(messageId: string) {
   const client = await getCorsairWithTenant();
   return await client.gmail.api.messages.get({
@@ -57,6 +96,31 @@ export async function sendEmail({
   const raw = buildRaw(to, subject, body);
   return await client.gmail.api.messages.send({
     raw,
+  });
+}
+
+export async function toggleStarMessage(messageId: string, star: boolean) {
+  const client = await getCorsairWithTenant();
+  return await client.gmail.api.messages.modify({
+    id: messageId,
+    addLabelIds: star ? ["STARRED"] : [],
+    removeLabelIds: star ? [] : ["STARRED"],
+  });
+}
+
+export async function markReadMessage(messageId: string) {
+  const client = await getCorsairWithTenant();
+  return await client.gmail.api.messages.modify({
+    id: messageId,
+    removeLabelIds: ["UNREAD"],
+  });
+}
+
+export async function archiveMessage(messageId: string) {
+  const client = await getCorsairWithTenant();
+  return await client.gmail.api.messages.modify({
+    id: messageId,
+    removeLabelIds: ["INBOX"],
   });
 }
 

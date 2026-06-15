@@ -20,6 +20,8 @@ import { useApp } from "@/lib/store";
 import { type Email } from "@/lib/mock-data";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
+import { useEmails, useEmailMutations } from "@/hooks/use-mail";
+import { toast } from "sonner";
 
 function ReceivedAt({ date }: { date: Date }) {
   const mounted = useMounted();
@@ -38,7 +40,9 @@ function ReceivedAt({ date }: { date: Date }) {
 }
 
 export function EmailReader() {
-  const { emails, selectedId, archive, remove, toggleStar, toggleAssistant } = useApp();
+  const { selectedId, folder, search, toggleAssistant, select } = useApp();
+  const { data: emails = [] } = useEmails(folder, search);
+  const { archive, trash, toggleStar, sendEmail } = useEmailMutations();
   const email = emails.find((e) => e.id === selectedId) ?? null;
 
   return (
@@ -56,9 +60,15 @@ export function EmailReader() {
             {/* Toolbar */}
             <Toolbar
               email={email}
-              onArchive={() => archive(email.id)}
-              onDelete={() => remove(email.id)}
-              onStar={() => toggleStar(email.id)}
+              onArchive={() => {
+                archive(email.id);
+                select(null);
+              }}
+              onDelete={() => {
+                trash(email.id);
+                select(null);
+              }}
+              onStar={() => toggleStar(email.id, !email.starred)}
               onToggleAssistant={toggleAssistant}
             />
 
@@ -124,7 +134,7 @@ export function EmailReader() {
                 )}
 
                 {/* Reply box */}
-                <ReplyComposer senderName={email.senderName} />
+                <ReplyComposer email={email} />
               </div>
             </article>
           </motion.div>
@@ -289,14 +299,34 @@ function Paragraph({ text }: { text: string }) {
   );
 }
 
-function ReplyComposer({ senderName }: { senderName: string }) {
+function ReplyComposer({ email }: { email: Email }) {
   const [text, setText] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const { sendEmail } = useEmailMutations();
   const suggestions = [
     "Sounds good — let's lock it.",
     "Can you share a brief?",
     "I'll review and get back to you.",
   ];
+
+  const handleSend = async () => {
+    if (!text.trim() || !email.senderEmail) return;
+    setIsSending(true);
+    try {
+      await sendEmail({
+        to: email.senderEmail,
+        subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`,
+        body: text,
+      });
+      toast.success("Reply sent");
+      setText("");
+    } catch (e) {
+      toast.error("Failed to send reply");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div
@@ -316,7 +346,7 @@ function ReplyComposer({ senderName }: { senderName: string }) {
           e.target.style.height = "auto";
           e.target.style.height = `${e.target.scrollHeight}px`;
         }}
-        placeholder={`Reply to ${senderName}…`}
+        placeholder={`Reply to ${email.senderName}…`}
         style={{ height: "auto", minHeight: "110px" }}
         className="w-full resize-none overflow-hidden bg-transparent px-6 pt-6 pb-2 text-[13.5px] font-normal leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none text-foreground/90"
       />
@@ -360,10 +390,14 @@ function ReplyComposer({ senderName }: { senderName: string }) {
               <span>AI Draft</span>
             </div>
           </button>
-          <button className="relative overflow-hidden group flex items-center gap-1.5 h-8 px-4.5 rounded-full bg-foreground text-[10.5px] font-bold tracking-wider text-background shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-foreground/90 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer">
+          <button
+            disabled={isSending || !text.trim()}
+            onClick={handleSend}
+            className="relative overflow-hidden group flex items-center gap-1.5 h-8 px-4.5 rounded-full bg-foreground text-[10.5px] font-bold tracking-wider text-background shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-foreground/90 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 transition-all duration-300 cursor-pointer"
+          >
             {/* Shimmer sweep */}
             <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 dark:via-neutral-950/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out pointer-events-none" />
-            <span>Send</span>
+            <span>{isSending ? "Sending..." : "Send"}</span>
             <Send className="h-3 w-3 fill-current transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         </div>

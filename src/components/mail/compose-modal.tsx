@@ -2,7 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { X, Paperclip, Image as ImageIcon, Clock, Sparkles, Minus } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { useEffect, useState } from "react";
-import { sendEmail } from "@/actions/mail/getInbox";
+import { useEmailMutations } from "@/hooks/use-mail";
+import { toast } from "sonner";
 
 export function ComposeModal() {
   const { composeOpen, closeCompose } = useApp();
@@ -20,17 +21,21 @@ export function ComposeModal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [composeOpen, closeCompose]);
 
+  const { sendEmail } = useEmailMutations();
+
   const handleSend = async () => {
     if (!to) return;
     setIsSending(true);
     try {
       await sendEmail({ to, subject, body });
+      toast.success("Email sent successfully");
       setTo("");
       setSubject("");
       setBody("");
       closeCompose();
     } catch (error) {
       console.error("Failed to send email:", error);
+      toast.error("Failed to send email");
     } finally {
       setIsSending(false);
     }
