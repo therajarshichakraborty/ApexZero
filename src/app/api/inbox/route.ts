@@ -1,21 +1,21 @@
-import { corsair } from '@/server/corsair';
-import { auth } from '@/utils/auth';
-import { headers } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { corsair } from "@/server/corsair";
+import { auth } from "@/utils/auth";
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const client = corsair.withTenant(session.user.id);
-    const result = await client.gmail.api.messages.list({
-        labelIds: ['INBOX'],
-        maxResults: 50,
-    });
-    return NextResponse.json(result);
+  const client = corsair.withTenant(session.user.id);
+  const result = await client.gmail.api.messages.list({
+    labelIds: ["INBOX"],
+    maxResults: 50,
+  });
+  return NextResponse.json(result);
 }

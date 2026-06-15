@@ -247,7 +247,6 @@
   animation: bg-breathing 45s ease-in-out infinite;
 }
 
-
 html.overflow-hidden,
 body.overflow-hidden {
   overflow: hidden !important;
