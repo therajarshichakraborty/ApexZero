@@ -1,6 +1,5 @@
 "use server";
-
-import { getCorsairWithTenant } from "./getInbox";
+import { getCorsairWithTenant } from "@/server/corsair";
 
 export async function searchMessages() {
   const client = await getCorsairWithTenant();
