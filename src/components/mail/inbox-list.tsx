@@ -1,16 +1,40 @@
 import { Star, Search, PanelLeft } from "lucide-react";
-import { useApp, useVisibleEmails } from "@/lib/store";
+import { useApp } from "@/lib/store";
 import { formatTime, groupByDay, type Email } from "@/lib/mock-data";
-import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
+import { useEmails, useEmailMutations } from "@/hooks/use-mail";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 export function InboxList() {
-  const { selectedId, select, toggleStar, search, setSearch, folder, sidebarOpen, toggleSidebar } =
-    useApp();
-  const visible = useVisibleEmails();
-  const mounted = useMounted();
+  //const { selectedId, select, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp();
+
+  const { selectedId, select, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp(
+    useShallow((s) => ({
+      selectedId: s.selectedId,
+      select: s.select,
+      search: s.search,
+      setSearch: s.setSearch,
+      folder: s.folder,
+      sidebarOpen: s.sidebarOpen,
+      toggleSidebar: s.toggleSidebar,
+    })),
+  );
+  const [localSearch, setLocalSearch] = useState(search);
+  const { data: visible = [], isPending, isError } = useEmails(folder, search);
+  const { toggleStar } = useEmailMutations();
   const groups = groupByDay(visible);
   const folderLabel = folder.charAt(0).toUpperCase() + folder.slice(1);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(localSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localSearch, setSearch]);
 
   return (
     <div className="flex h-full w-full min-w-0 overflow-hidden flex-col border-r border-border bg-background">
@@ -42,8 +66,8 @@ export function InboxList() {
         <div className="flex items-center gap-2 h-8 rounded-md border border-border bg-muted/20 px-2.5 focus-within:border-foreground/20 transition-colors">
           <Search className="h-3 w-3 shrink-0 text-muted-foreground/50" />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             placeholder="Filter…"
             className="flex-1 bg-transparent text-[12px] placeholder:text-muted-foreground/40 focus:outline-none min-w-0"
           />
@@ -52,8 +76,15 @@ export function InboxList() {
 
       {/* Email rows */}
       <div className="scrollbar-elegant flex-1 overflow-y-auto">
-        {!mounted ? (
+        {isPending ? (
           <Skeleton />
+        ) : isError ? (
+          <div className="mt-24 flex flex-col items-center gap-2 px-8 text-center">
+            <p className="text-[12.5px] font-medium text-destructive">Failed to load emails</p>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/connect">Connect Gmail</Link>
+            </Button>
+          </div>
         ) : visible.length === 0 ? (
           <Empty />
         ) : (
@@ -73,7 +104,7 @@ export function InboxList() {
                     email={email}
                     active={email.id === selectedId}
                     onSelect={() => select(email.id)}
-                    onStar={() => toggleStar(email.id)}
+                    onStar={() => toggleStar(email.id, email.starred)}
                   />
                 ))}
               </div>

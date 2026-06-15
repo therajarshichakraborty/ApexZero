@@ -437,7 +437,19 @@ function FadeIn({
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
+    <div className="relative min-h-screen bg-background text-foreground antialiased">
+      <div className="absolute inset-x-0 top-0 z-0 h-[1000px] overflow-hidden pointer-events-none">
+        <img
+          src="/digital-art-style-illustration-river-nature.jpg"
+          alt="Traveling Anime Landscape"
+          className="h-full w-full object-cover object-[center_50%] opacity-[0.85] dark:opacity-[0.6] transition-opacity duration-700 animate-bg-breathing"
+        />
+        <div className="absolute inset-0 bg-background/15 dark:bg-background/35" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-50% to-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_30%,var(--background)_98%)]" />
+        <div className="absolute inset-0 backdrop-blur-[0.5px]" />
+      </div>
+
       <SiteHeader />
 
       <section className="relative overflow-hidden">
@@ -451,9 +463,9 @@ export default function LandingPage() {
             <br />
             <span className="text-muted-foreground">at the speed of thought.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-md text-[15.5px] leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-6 max-w-md text-[15.5px] leading-relaxed text-black dark:text-white">
             ApexZero is an AI-native email client that triages your inbox, drafts your replies, and
-            surfaces what matters — before you even ask.
+            surfaces what matters - before you even ask.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <Link

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { useEffect } from "react";
+import { useEmails } from "@/hooks/use-mail";
 
 export function CommandPalette() {
   const {
@@ -25,9 +26,11 @@ export function CommandPalette() {
     togglePalette,
     setFolder,
     openCompose,
-    emails,
     select,
+    folder,
   } = useApp();
+
+  const { data: emails = [] } = useEmails(folder);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

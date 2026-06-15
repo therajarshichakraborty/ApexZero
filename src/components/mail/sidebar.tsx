@@ -36,16 +36,14 @@ const NAV: { id: Folder; label: string; icon: typeof Inbox; shortcut?: string }[
 
 export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
   const { user } = useAuth();
-  const { folder, setFolder, emails, openCompose, openPalette } = useApp();
+  const { folder, setFolder, openCompose, openPalette } = useApp();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // TODO: Fetch real unread counts via Gmail Labels API
   const count = (id: Folder) => {
-    if (id === "starred") return emails.filter((e) => e.starred && e.folder !== "trash").length;
-    if (id === "important")
-      return emails.filter((e) => e.aiPriority >= 70 && e.folder === "inbox" && e.unread).length;
-    return emails.filter((e) => e.folder === id && e.unread).length;
+    return 0;
   };
 
   return (
@@ -176,12 +174,13 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
               <Moon className="h-3.5 w-3.5 transition-transform duration-500 group-hover/theme:-rotate-12" />
             )}
           </button>
-          <button
-            aria-label="Settings"
+          <Link
+            href="/connect"
+            aria-label="Integrations & Settings"
             className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border/40 text-muted-foreground/60 transition-all duration-300 hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 cursor-pointer group/settings"
           >
             <Settings className="h-3.5 w-3.5 transition-transform duration-500 group-hover/settings:rotate-45" />
-          </button>
+          </Link>
         </div>
       </div>
     </aside>

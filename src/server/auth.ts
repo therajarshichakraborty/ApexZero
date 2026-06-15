@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/utils/auth"
+import { auth } from "@/utils/auth";
 export async function getSessionTenantId(request: NextRequest): Promise<string | null> {
-    const session = await auth.api.getSession({
-        headers: request.headers,
-    });
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
 
-    if (!session?.user?.id) {
-        return null;
-    }
+  if (!session?.user?.id) {
+    return null;
+  }
 
-    // Use the user's ID as the tenant ID so tokens are scoped per user
-    return session.user.id;
+  // Use the user's ID as the tenant ID so tokens are scoped per user
+  return session.user.id;
 }
