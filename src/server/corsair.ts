@@ -30,7 +30,7 @@ const sessionMap: Map<string, { userId: string; exp: number }> = g.__corsair_ses
 const clientMap: Map<string, { client: TenantClient; exp: number }> = g.__corsair_client_cache;
 
 const SESSION_TTL = 5 * 60 * 1000;
-const CLIENT_TTL  = 4 * 60 * 1000;
+const CLIENT_TTL = 4 * 60 * 1000;
 
 export async function getCorsairWithTenant(): Promise<TenantClient> {
   const now = Date.now();
@@ -38,10 +38,14 @@ export async function getCorsairWithTenant(): Promise<TenantClient> {
   const cookieHeader = h.get("cookie") ?? "";
 
   const sessionCookie =
-    cookieHeader.split(";").map((c) => c.trim()).find(
-      (c) => c.startsWith("better-auth.session_token=") ||
-             c.startsWith("__Secure-better-auth.session_token=")
-    ) ?? "";
+    cookieHeader
+      .split(";")
+      .map((c) => c.trim())
+      .find(
+        (c) =>
+          c.startsWith("better-auth.session_token=") ||
+          c.startsWith("__Secure-better-auth.session_token="),
+      ) ?? "";
 
   console.log("[c] sessionMap.size:", sessionMap.size, "clientMap.size:", clientMap.size);
 

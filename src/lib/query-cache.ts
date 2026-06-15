@@ -9,8 +9,7 @@ const g = globalThis as unknown as {
   queryCache: Map<string, QueryCacheEntry> | undefined;
 };
 
-const queryCache: Map<string, QueryCacheEntry> =
-  g.queryCache ?? new Map();
+const queryCache: Map<string, QueryCacheEntry> = g.queryCache ?? new Map();
 g.queryCache = queryCache;
 
 const QUERY_TTL = 4 * 60 * 1000; // 4 minutes

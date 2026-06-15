@@ -15,4 +15,3 @@ pool.on("connect", () => console.log("PG CONNECT"));
 pool.on("acquire", () => console.log("PG ACQUIRE"));
 
 export const db = drizzle({ client: pool, schema });
-

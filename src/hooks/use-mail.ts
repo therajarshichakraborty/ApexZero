@@ -19,7 +19,7 @@ export function useEmails(folder: string, search: string = "") {
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-  })
+  });
 }
 
 export function useEmailBody(messageId: string | null) {

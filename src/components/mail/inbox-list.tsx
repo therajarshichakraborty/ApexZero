@@ -12,16 +12,16 @@ export function InboxList() {
   //const { selectedId, select, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp();
 
   const { selectedId, select, search, setSearch, folder, sidebarOpen, toggleSidebar } = useApp(
-  useShallow((s) => ({
-    selectedId: s.selectedId,
-    select: s.select,
-    search: s.search,
-    setSearch: s.setSearch,
-    folder: s.folder,
-    sidebarOpen: s.sidebarOpen,
-    toggleSidebar: s.toggleSidebar,
-  }))
-);
+    useShallow((s) => ({
+      selectedId: s.selectedId,
+      select: s.select,
+      search: s.search,
+      setSearch: s.setSearch,
+      folder: s.folder,
+      sidebarOpen: s.sidebarOpen,
+      toggleSidebar: s.toggleSidebar,
+    })),
+  );
   const [localSearch, setLocalSearch] = useState(search);
   const { data: visible = [], isPending, isError } = useEmails(folder, search);
   const { toggleStar } = useEmailMutations();
