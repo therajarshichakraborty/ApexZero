@@ -23,7 +23,7 @@ export function InboxList() {
     })),
   );
   const [localSearch, setLocalSearch] = useState(search);
-  const { data: visible = [], isPending, isError } = useEmails(folder, search);
+  const { data: visible = [], isPending, isError, isFetching } = useEmails(folder, search);
   const { toggleStar } = useEmailMutations();
   const groups = groupByDay(visible);
   const folderLabel = folder.charAt(0).toUpperCase() + folder.slice(1);
@@ -73,6 +73,11 @@ export function InboxList() {
           />
         </div>
       </div>
+
+      {/* Thin loading bar — shows on background fetching, but not initial loading skeleton */}
+      {isFetching && !isPending && (
+        <div className="h-0.5 bg-foreground/20 animate-pulse w-full shrink-0" />
+      )}
 
       {/* Email rows */}
       <div className="scrollbar-elegant flex-1 overflow-y-auto">

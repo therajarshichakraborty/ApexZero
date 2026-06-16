@@ -16,10 +16,27 @@ export function useEmails(folder: string, search: string = "") {
   return useQuery({
     queryKey: ["emails", folder, search],
     queryFn: () => getFullMessagesByLabel(folder, search),
-    staleTime: 30_000,
-    gcTime: 5 * 60_000,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev, // show previous data while loading
   });
+}
+
+export function useMail(folder: string, searchQuery?: string) {
+  return useEmails(folder, searchQuery ?? "");
+}
+
+export function useMailPrefetch() {
+  const queryClient = useQueryClient();
+
+  return function prefetch(folder: string) {
+    queryClient.prefetchQuery({
+      queryKey: ["emails", folder, ""],
+      queryFn: () => getFullMessagesByLabel(folder),
+      staleTime: 30 * 1000,
+    });
+  };
 }
 
 export function useEmailBody(messageId: string | null) {

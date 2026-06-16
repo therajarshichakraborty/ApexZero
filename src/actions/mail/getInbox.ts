@@ -1,77 +1,155 @@
 "use server";
 
 import { getCorsairWithTenant } from "@/server/corsair";
+import { gmailMessageToEmail } from "@/lib/gmail-adapter";
 
-export async function getInboxMessages() {
-  const client = await getCorsairWithTenant();
-  return await client.gmail.api.messages.list({
-    labelIds: ["INBOX"],
-    maxResults: 30,
-  });
-}
-
-const FOLDER_QUERIES: Record<string, string> = {
-  inbox: "in:inbox",
-  important: "is:important",
-  starred: "is:starred",
-  sent: "in:sent",
-  drafts: "in:drafts",
-  archive: "-in:inbox -in:trash -in:spam",
-  spam: "in:spam",
-  trash: "in:trash",
+const FOLDER_LABEL_MAP: Record<string, string> = {
+  inbox:     "INBOX",
+  important: "IMPORTANT", 
+  starred:   "STARRED",
+  sent:      "SENT",
+  drafts:    "DRAFT",
+  spam:      "SPAM",
+  trash:     "TRASH",
+  archive:   "ARCHIVE",
 };
 
-export async function getFullMessagesByLabel(folder: string, searchQuery?: string) {
-  const totalStart = Date.now();
-
-  // On cache hit: ~0ms DB work
-  // On cache miss: credential loading happens inside here,
-  //   including one warm-up messages.list call
+export async function getFullMessagesByLabel(
+  folder: string,
+  searchQuery?: string,
+) {
+  const start = Date.now();
   const client = await getCorsairWithTenant();
-  console.log("getCorsairWithTenant took", Date.now() - totalStart, "ms");
+  console.log("getCorsairWithTenant took", Date.now() - start, "ms");
+
+  const dbStart = Date.now();
+
+  try {
+    // Query local Corsair DB
+    const messages = await client.gmail.db.messages.search({
+      data: searchQuery ? { subject: { contains: searchQuery } } : {},
+      limit: 20,
+      offset: 0,
+    });
+
+    console.log("local DB took", Date.now() - dbStart, "ms", "count:", messages.length);
+    console.log("TOTAL took", Date.now() - start, "ms");
+
+    if (!messages.length) {
+      // If local DB is empty, fall back to Gmail API
+      return getFromGmailApi(client, folder, searchQuery);
+    }
+
+    const label = FOLDER_LABEL_MAP[folder];
+
+    // Filter by label client-side since corsair_entities stores labelIds in data
+    const filtered = label
+      ? messages.filter((m: any) => m.data?.labelIds?.includes(label))
+      : messages;
+
+    return filtered.map((m: any) => normalizeMessage(m));
+
+  } catch (e) {
+    console.error("local DB failed, falling back to API:", e);
+    // Fallback to Gmail API if local DB fails
+    return getFromGmailApi(client, folder, searchQuery);
+  }
+}
+
+// Normalize Corsair entity shape → your email shape
+function normalizeMessage(m: any) {
+  const data = m.data ?? {};
+  const headers = data.payload?.headers ?? [];
+
+  function header(name: string) {
+    return headers.find((h: any) => 
+      h.name?.toLowerCase() === name.toLowerCase()
+    )?.value ?? "";
+  }
+
+  // Ensure headers exist for the adapter
+  if (!data.payload) data.payload = {};
+  if (!data.payload.headers) data.payload.headers = [];
+  const adapterHeaders = data.payload.headers;
+  
+  const ensureHeader = (name: string, value: string) => {
+    if (value && !adapterHeaders.some((h: any) => h.name?.toLowerCase() === name.toLowerCase())) {
+      adapterHeaders.push({ name, value });
+    }
+  };
+  
+  ensureHeader("Subject", data.subject || "");
+  ensureHeader("From", data.from || "");
+  ensureHeader("To", data.to || "");
+  if (data.internalDate) {
+    ensureHeader("Date", new Date(parseInt(data.internalDate)).toISOString());
+  }
+
+  // Use the adapter to get UI-compatible fields
+  const uiEmail = gmailMessageToEmail(data);
+
+  return {
+    ...uiEmail,
+    // Keep user-requested local DB fields
+    id:          data.id ?? m.entity_id,
+    threadId:    data.threadId ?? "",
+    subject:     header("Subject") || data.subject || "(no subject)",
+    from:        header("From")    || data.from    || "",
+    to:          header("To")      || data.to      || "",
+    date:        header("Date")    || new Date(
+                   parseInt(data.internalDate ?? "0")
+                 ).toISOString(),
+    snippet:     data.snippet ?? "",
+    labelIds:    data.labelIds ?? [],
+    isUnread:    data.labelIds?.includes("UNREAD") ?? false,
+    isStarred:   data.labelIds?.includes("STARRED") ?? false,
+    sizeEstimate: data.sizeEstimate ?? 0,
+  };
+}
+
+// Fallback: original Gmail API path
+async function getFromGmailApi(client: any, folder: string, searchQuery?: string) {
+  const FOLDER_QUERIES: Record<string, string> = {
+    inbox:     "in:inbox",
+    important: "is:important",
+    starred:   "is:starred",
+    sent:      "in:sent",
+    drafts:    "in:drafts",
+    archive:   "-in:inbox -in:trash -in:spam",
+    spam:      "in:spam",
+    trash:     "in:trash",
+  };
 
   let q = FOLDER_QUERIES[folder] ?? "";
   if (searchQuery) q = q ? `${q} ${searchQuery}` : searchQuery;
 
-  // On cache hit this is the FIRST real Gmail call — no DB involved
-  // On cache miss this is redundant with the warm-up — see note below
-  const listStart = Date.now();
-  const result = await client.gmail.api.messages.list({
-    /* The size of maxResults is directly poroprtional to the time it takes to fetch the messages , it also depends on the number of labels the user has. */
-    maxResults: 5, // increase this — you were fetching only 1
-    q,
-  });
-  console.log("messages.list took", Date.now() - listStart, "ms");
-
+  const result = await client.gmail.api.messages.list({ maxResults: 20, q });
   if (!result.messages?.length) return [];
-  const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
 
-  // Fetch all metadata in parallel
-  const batchStart = Date.now();
-  const metadataMessages = await Promise.all(
+  const { gmailMessageToEmail: adapterGmailMessageToEmail } = await import("@/lib/gmail-adapter");
+
+  const full = await Promise.all(
     result.messages.map((m: any) =>
       client.gmail.api.messages.get({
         id: m.id!,
-        /* Making format full takes a lot of time rather than using metadataHeaders */
-        format: "minimal", /* minimal | full | raw | metadata */
-        // metadataHeaders: ["From", "To", "Subject", "Date"],
-      }),
-    ),
+        format: "metadata",
+        metadataHeaders: ["From", "To", "Subject", "Date"],
+      })
+    )
   );
-  console.log("metadata batch took", Date.now() - batchStart, "ms");
-  console.log("TOTAL took", Date.now() - totalStart, "ms");
 
-  return metadataMessages.map((m: any) => gmailMessageToEmail(m as any));
+  return full.map((m: any) => adapterGmailMessageToEmail(m));
 }
 
+// Keep these for other parts of your app
 export async function getMessage(messageId: string) {
   const client = await getCorsairWithTenant();
   const res = await client.gmail.api.messages.get({
     id: messageId,
     format: "full",
   });
-  const { gmailMessageToEmail } = await import("@/lib/gmail-adapter");
-  return gmailMessageToEmail(res as any);
+  const { gmailMessageToEmail: adapterGmailMessageToEmail } = await import("@/lib/gmail-adapter");
+  return adapterGmailMessageToEmail(res as any);
 }
 
 function buildRaw(to: string, subject: string, body: string): string {

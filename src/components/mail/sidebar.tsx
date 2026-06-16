@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { UserButton } from "@/components/auth/user-button";
 import { useAuth } from "@/hooks/use-auth";
+import { useMailPrefetch } from "@/hooks/use-mail";
 import {
   Inbox,
   Star,
@@ -39,6 +40,7 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
   const { folder, setFolder, openCompose, openPalette } = useApp();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const prefetch = useMailPrefetch();
   useEffect(() => setMounted(true), []);
 
   // TODO: Fetch real unread counts via Gmail Labels API
@@ -92,6 +94,7 @@ export function Sidebar({ hideHeader = false }: { hideHeader?: boolean }) {
             <button
               key={item.id}
               onClick={() => setFolder(item.id)}
+              onMouseEnter={() => prefetch(item.id)}
               className={cn(
                 "group relative flex h-7 items-center gap-2 rounded-md px-2.5 text-[12.5px] transition-colors",
                 active
