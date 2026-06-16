@@ -104,11 +104,10 @@ export function useEmailMutations() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: async (args: Parameters<typeof sendEmailAction>[0]) => {
-      const res = await sendEmailAction(args);
+    mutationFn: sendEmailAction,
+    onSuccess: () => {
       // Trigger a sync in the background so the sent message is pulled into the DB
       fetch("/api/sync-gmail", { method: "POST" }).catch(() => {});
-      return res;
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["emails", "sent"] });
@@ -120,6 +119,6 @@ export function useEmailMutations() {
     markRead: (id: string) => markReadMutation.mutate(id),
     archive: (id: string) => archiveMutation.mutate(id),
     trash: (id: string) => trashMutation.mutate(id),
-    sendEmail: sendMutation.mutateAsync,
+    sendEmail: (args: Parameters<typeof sendEmailAction>[0]) => sendMutation.mutateAsync(args),
   };
 }

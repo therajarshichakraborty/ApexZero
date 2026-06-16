@@ -60,7 +60,7 @@ async function performSync(client: any) {
   }
 
   // 4. Delete stale messages (present in DB but no longer in the active lists)
-  const idsToDelete = Array.from(localIds).filter(id => !activeGmailIds.has(id));
+  const idsToDelete = Array.from(localIds).filter(id => !activeGmailIds.has(id as string));
   console.log(`Deleting ${idsToDelete.length} stale messages from local DB`);
 
   if (idsToDelete.length > 0) {
