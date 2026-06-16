@@ -14,6 +14,17 @@ const FOLDER_LABEL_MAP: Record<string, string> = {
   archive:   "ARCHIVE",
 };
 
+const FOLDER_QUERIES: Record<string, string> = {
+  inbox:     "in:inbox",
+  important: "is:important",
+  starred:   "is:starred",
+  sent:      "in:sent",
+  drafts:    "in:drafts",
+  archive:   "-in:inbox -in:trash -in:spam",
+  spam:      "in:spam",
+  trash:     "in:trash",
+};
+
 export async function getFullMessagesByLabel(
   folder: string,
   searchQuery?: string,
@@ -26,52 +37,95 @@ export async function getFullMessagesByLabel(
 
   try {
     const label = FOLDER_LABEL_MAP[folder];
+    const q = FOLDER_QUERIES[folder] || "";
+    const listQuery = searchQuery ? (q ? `${q} ${searchQuery}` : searchQuery) : q;
 
-    // Build DB search query
+    // 1. Fetch the latest 20 active Gmail message IDs for the folder from Gmail API
+    const listRes = await client.gmail.api.messages.list({
+      maxResults: 20,
+      q: listQuery,
+    });
+    const gmailIds = listRes.messages?.map((m: any) => m.id).filter(Boolean) || [];
+
+    // 2. Query what we already have in local DB for this folder
     const searchData: any = {};
     if (searchQuery) {
       searchData.subject = { contains: searchQuery };
     }
-    
-    // Direct DB label filtering for non-archive folders
     if (label && folder !== "archive") {
       searchData.labelIds = { contains: label };
     }
-
-    // Query local Corsair DB
-    const messages = await client.gmail.db.messages.search({
+    const localMessages = await client.gmail.db.messages.search({
       data: searchData,
-      limit: folder === "archive" ? 100 : 20,
+      limit: 100,
+    });
+    const localIds = new Set(localMessages.map((m: any) => m.entity_id));
+
+    // 3. Sync details in the foreground for any missing message IDs
+    const missingIds = gmailIds.filter((id) => !localIds.has(id));
+    if (missingIds.length > 0) {
+      console.log(`Syncing ${missingIds.length} new/missing messages for folder "${folder}"`);
+      await Promise.all(
+        missingIds.map((id) =>
+          client.gmail.api.messages.get({
+            id,
+            format: "full",
+          }).catch((err) => {
+            console.error(`Failed to fetch missing details for ${id}:`, err);
+          })
+        )
+      );
+    }
+
+    // 4. Delete messages from local DB that are no longer present in Gmail's active list
+    const activeGmailIdsSet = new Set(gmailIds);
+    const staleIds = localMessages
+      .map((m: any) => m.entity_id)
+      .filter((id) => id && !activeGmailIdsSet.has(id));
+    
+    if (staleIds.length > 0) {
+      console.log(`Deleting ${staleIds.length} stale messages from local DB for folder "${folder}"`);
+      await Promise.all(
+        staleIds.map((id) => client.gmail.db.messages.deleteByEntityId(id).catch(() => {}))
+      );
+    }
+
+    // 5. Query and return the sorted local DB results
+    const updatedMessages = await client.gmail.db.messages.search({
+      data: searchData,
+      limit: 20,
       offset: 0,
     });
 
-    console.log("local DB took", Date.now() - dbStart, "ms", "count:", messages.length);
-    console.log("TOTAL took", Date.now() - start, "ms");
-
-    if (!messages.length) {
-      // If local DB is empty, fall back to Gmail API
-      return getFromGmailApi(client, folder, searchQuery);
-    }
-
-    // Client-side filtering only needed for archive (which doesn't have a positive system label)
-    const filtered = folder === "archive"
-      ? messages.filter((m: any) => {
-          const ids = m.data?.labelIds ?? [];
-          return !ids.includes("INBOX") && !ids.includes("TRASH") && !ids.includes("SPAM");
-        }).slice(0, 50)
-      : messages;
-
-    const normalized = filtered.map((m: any) => normalizeMessage(m));
-
-    // Sort descending chronologically by date
+    const normalized = updatedMessages.map((m: any) => normalizeMessage(m));
     normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
 
+    console.log("real-time DB query took", Date.now() - dbStart, "ms", "count:", normalized.length);
     return normalized;
 
   } catch (e) {
-    console.error("local DB failed, falling back to API:", e);
-    // Fallback to Gmail API if local DB fails
-    return getFromGmailApi(client, folder, searchQuery);
+    console.error("Real-time DB query failed, using cached database fallback:", e);
+    
+    // Fallback: search database directly without Gmail API call
+    try {
+      const label = FOLDER_LABEL_MAP[folder];
+      const searchData: any = {};
+      if (searchQuery) searchData.subject = { contains: searchQuery };
+      if (label && folder !== "archive") searchData.labelIds = { contains: label };
+
+      const messages = await client.gmail.db.messages.search({
+        data: searchData,
+        limit: 20,
+        offset: 0,
+      });
+
+      const normalized = messages.map((m: any) => normalizeMessage(m));
+      normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
+      return normalized;
+    } catch (dbErr) {
+      console.error("Database fallback failed, fetching live from Gmail API directly:", dbErr);
+      return getFromGmailApi(client, folder, searchQuery);
+    }
   }
 }
 
