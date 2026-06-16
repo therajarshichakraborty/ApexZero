@@ -104,7 +104,12 @@ export function useEmailMutations() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: sendEmailAction,
+    mutationFn: async (args: Parameters<typeof sendEmailAction>[0]) => {
+      const res = await sendEmailAction(args);
+      // Trigger a sync in the background so the sent message is pulled into the DB
+      fetch("/api/sync-gmail", { method: "POST" }).catch(() => {});
+      return res;
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["emails", "sent"] });
     },

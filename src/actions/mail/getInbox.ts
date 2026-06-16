@@ -61,7 +61,12 @@ export async function getFullMessagesByLabel(
         }).slice(0, 50)
       : messages;
 
-    return filtered.map((m: any) => normalizeMessage(m));
+    const normalized = filtered.map((m: any) => normalizeMessage(m));
+
+    // Sort descending chronologically by date
+    normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
+
+    return normalized;
 
   } catch (e) {
     console.error("local DB failed, falling back to API:", e);
