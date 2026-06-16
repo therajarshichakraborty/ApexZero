@@ -25,10 +25,23 @@ export async function getFullMessagesByLabel(
   const dbStart = Date.now();
 
   try {
+    const label = FOLDER_LABEL_MAP[folder];
+
+    // Build DB search query
+    const searchData: any = {};
+    if (searchQuery) {
+      searchData.subject = { contains: searchQuery };
+    }
+    
+    // Direct DB label filtering for non-archive folders
+    if (label && folder !== "archive") {
+      searchData.labelIds = { contains: label };
+    }
+
     // Query local Corsair DB
     const messages = await client.gmail.db.messages.search({
-      data: searchQuery ? { subject: { contains: searchQuery } } : {},
-      limit: 20,
+      data: searchData,
+      limit: folder === "archive" ? 100 : 20,
       offset: 0,
     });
 
@@ -40,11 +53,12 @@ export async function getFullMessagesByLabel(
       return getFromGmailApi(client, folder, searchQuery);
     }
 
-    const label = FOLDER_LABEL_MAP[folder];
-
-    // Filter by label client-side since corsair_entities stores labelIds in data
-    const filtered = label
-      ? messages.filter((m: any) => m.data?.labelIds?.includes(label))
+    // Client-side filtering only needed for archive (which doesn't have a positive system label)
+    const filtered = folder === "archive"
+      ? messages.filter((m: any) => {
+          const ids = m.data?.labelIds ?? [];
+          return !ids.includes("INBOX") && !ids.includes("TRASH") && !ids.includes("SPAM");
+        }).slice(0, 50)
       : messages;
 
     return filtered.map((m: any) => normalizeMessage(m));
@@ -132,7 +146,7 @@ async function getFromGmailApi(client: any, folder: string, searchQuery?: string
     result.messages.map((m: any) =>
       client.gmail.api.messages.get({
         id: m.id!,
-        format: "metadata",
+        format: "full",
         metadataHeaders: ["From", "To", "Subject", "Date"],
       })
     )
