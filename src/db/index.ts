@@ -6,12 +6,12 @@ import * as schema from "./schema";
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL!,
-  max: 10,
+  max: 50,
   min: 2,
   idleTimeoutMillis: 60_000,
 });
 
-pool.on("connect", () => console.log("PG CONNECT"));
-pool.on("acquire", () => console.log("PG ACQUIRE"));
+// pool.on("connect", () => console.log("PG CONNECT"));
+// pool.on("acquire", () => console.log("PG ACQUIRE"));
 
 export const db = drizzle({ client: pool, schema });

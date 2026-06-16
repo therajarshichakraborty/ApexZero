@@ -25,6 +25,115 @@ const FOLDER_QUERIES: Record<string, string> = {
   trash:     "in:trash",
 };
 
+async function performFolderSync(
+  client: any,
+  folder: string,
+  listQuery: string,
+  searchData: any,
+) {
+  try {
+    const listRes = await client.gmail.api.messages.list({
+      maxResults: 20,
+      q: listQuery,
+    });
+    const gmailIds = listRes.messages?.map((m: any) => m.id).filter(Boolean) || [];
+
+    if (gmailIds.length === 0) return;
+
+    // Query current database messages for this query
+    const localMessages = await client.gmail.db.messages.search({
+      data: searchData,
+      limit: 100,
+    });
+    const localIds = new Set(
+      localMessages
+        .filter((m: any) => m.entity_id && m.data?.payload?.headers?.length > 0)
+        .map((m: any) => m.entity_id)
+    );
+
+    const activeIdToDate = new Map<string, number>();
+
+    // Add dates of already cached complete messages
+    for (const m of localMessages) {
+      if (m.entity_id && m.data?.payload?.headers?.length > 0) {
+        const dateVal = m.data?.internalDate;
+        activeIdToDate.set(m.entity_id, dateVal ? parseInt(dateVal) : 0);
+      }
+    }
+
+    // Fetch missing details in "metadata" format
+    const missingIds = gmailIds.filter((id: string) => !localIds.has(id));
+    const newlyFetched: any[] = [];
+    if (missingIds.length > 0) {
+      console.log(`[performFolderSync] Syncing ${missingIds.length} new/missing messages for folder "${folder}"`);
+      const results = await Promise.all(
+        missingIds.map((id: string) =>
+          client.gmail.api.messages.get({
+            id,
+            format: "full",
+            //metadataHeaders: ["From", "To", "Subject", "Date"],
+          }).catch((err:any) => {
+            console.error(`Failed to fetch missing details for ${id}:`, err);
+            return null;
+          })
+        )
+      );
+      newlyFetched.push(...results.filter(Boolean));
+    }
+
+    // Add dates of newly fetched messages
+    for (const m of newlyFetched) {
+      if (m.id) {
+        const dateVal = m.internalDate;
+        activeIdToDate.set(m.id, dateVal ? parseInt(dateVal) : 0);
+      }
+    }
+
+    // Determine sliding-window threshold
+    let oldestActiveDate = 0;
+    if (gmailIds.length >= 20) {
+      const dates = gmailIds
+        .map((id: string) => activeIdToDate.get(id))
+        .filter((d:any): d is number => d !== undefined && d > 0);
+      if (dates.length > 0) {
+        oldestActiveDate = Math.min(...dates);
+      }
+    }
+
+    const activeGmailIdsSet = new Set(gmailIds);
+    const staleIds = localMessages
+      .filter((m: any) => {
+        const entityId = m.entity_id;
+        if (!entityId || activeGmailIdsSet.has(entityId)) return false;
+
+        const dateVal = m.data?.internalDate;
+        const messageDate = dateVal ? parseInt(dateVal) : 0;
+        return messageDate >= oldestActiveDate;
+      })
+      .map((m: any) => m.entity_id);
+
+    if (staleIds.length > 0) {
+      console.log(`[performFolderSync] Refreshing labels for ${staleIds.length} stale messages for folder "${folder}"`);
+      await Promise.all(
+        staleIds.map(async (id: string) => {
+          try {
+            await client.gmail.api.messages.get({
+              id,
+              format: "full",
+              //metadataHeaders: ["From", "To", "Subject", "Date"],
+            });
+          } catch (err: any) {
+            console.log(`[performFolderSync] Failed to fetch stale message ${id}, deleting from DB:`, err.message);
+            await client.gmail.db.messages.deleteByEntityId(id).catch(() => {});
+          }
+        })
+      );
+    }
+  } catch (err) {
+    console.error(`Failed performFolderSync for folder "${folder}":`, err);
+  }
+}
+
 export async function getFullMessagesByLabel(
   folder: string,
   searchQuery?: string,
@@ -40,14 +149,6 @@ export async function getFullMessagesByLabel(
     const q = FOLDER_QUERIES[folder] || "";
     const listQuery = searchQuery ? (q ? `${q} ${searchQuery}` : searchQuery) : q;
 
-    // 1. Fetch the latest 20 active Gmail message IDs for the folder from Gmail API
-    const listRes = await client.gmail.api.messages.list({
-      maxResults: 20,
-      q: listQuery,
-    });
-    const gmailIds = listRes.messages?.map((m: any) => m.id).filter(Boolean) || [];
-
-    // 2. Query what we already have in local DB for this folder
     const searchData: any = {};
     if (searchQuery) {
       searchData.subject = { contains: searchQuery };
@@ -55,52 +156,42 @@ export async function getFullMessagesByLabel(
     if (label && folder !== "archive") {
       searchData.labelIds = { contains: label };
     }
+
+    // 1. Query the database first
     const localMessages = await client.gmail.db.messages.search({
       data: searchData,
-      limit: 100,
+      limit: 20,
     });
-    const localIds = new Set(localMessages.map((m: any) => m.entity_id));
 
-    // 3. Sync details in the foreground for any missing message IDs
-    const missingIds = gmailIds.filter((id) => !localIds.has(id));
-    if (missingIds.length > 0) {
-      console.log(`Syncing ${missingIds.length} new/missing messages for folder "${folder}"`);
-      await Promise.all(
-        missingIds.map((id) =>
-          client.gmail.api.messages.get({
-            id,
-            format: "full",
-          }).catch((err) => {
-            console.error(`Failed to fetch missing details for ${id}:`, err);
-          })
-        )
-      );
+    const completeLocalMessages = localMessages.filter((m: any) => m.data?.payload?.headers?.length > 0);
+
+    if (completeLocalMessages.length > 0) {
+      console.log(`[getInbox] Found ${completeLocalMessages.length} complete cached messages in DB for "${folder}". Returning immediately.`);
+
+      // Fire and forget sync in background to update DB
+      performFolderSync(client, folder, listQuery, searchData).catch((err) => {
+        console.error("Background performFolderSync failed:", err);
+      });
+
+      const normalized = completeLocalMessages.map((m: any) => normalizeMessage(m));
+      normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
+      console.log("real-time DB query (cached) took", Date.now() - dbStart, "ms", "count:", normalized.length);
+      return normalized;
     }
 
-    // 4. Delete messages from local DB that are no longer present in Gmail's active list
-    const activeGmailIdsSet = new Set(gmailIds);
-    const staleIds = localMessages
-      .map((m: any) => m.entity_id)
-      .filter((id) => id && !activeGmailIdsSet.has(id));
-    
-    if (staleIds.length > 0) {
-      console.log(`Deleting ${staleIds.length} stale messages from local DB for folder "${folder}"`);
-      await Promise.all(
-        staleIds.map((id) => client.gmail.db.messages.deleteByEntityId(id).catch(() => {}))
-      );
-    }
+    // 2. Database is empty or has no complete messages, do a foreground sync
+    console.log(`[getInbox] No complete cached messages in DB for "${folder}". Performing foreground sync.`);
+    await performFolderSync(client, folder, listQuery, searchData);
 
-    // 5. Query and return the sorted local DB results
     const updatedMessages = await client.gmail.db.messages.search({
       data: searchData,
       limit: 20,
-      offset: 0,
     });
 
-    const normalized = updatedMessages.map((m: any) => normalizeMessage(m));
+    const completeUpdatedMessages = updatedMessages.filter((m: any) => m.data?.payload?.headers?.length > 0);
+    const normalized = completeUpdatedMessages.map((m: any) => normalizeMessage(m));
     normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
-
-    console.log("real-time DB query took", Date.now() - dbStart, "ms", "count:", normalized.length);
+    console.log("real-time DB query (first-sync) took", Date.now() - dbStart, "ms", "count:", normalized.length);
     return normalized;
 
   } catch (e) {
@@ -119,7 +210,8 @@ export async function getFullMessagesByLabel(
         offset: 0,
       });
 
-      const normalized = messages.map((m: any) => normalizeMessage(m));
+      const completeMessages = messages.filter((m: any) => m.data?.payload?.headers?.length > 0);
+      const normalized = completeMessages.map((m: any) => normalizeMessage(m));
       normalized.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
       return normalized;
     } catch (dbErr) {
@@ -206,7 +298,7 @@ async function getFromGmailApi(client: any, folder: string, searchQuery?: string
       client.gmail.api.messages.get({
         id: m.id!,
         format: "full",
-        metadataHeaders: ["From", "To", "Subject", "Date"],
+        //metadataHeaders: ["From", "To", "Subject", "Date"],
       })
     )
   );

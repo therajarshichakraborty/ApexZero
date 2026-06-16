@@ -2,14 +2,21 @@ import { NextResponse } from "next/server";
 import { getCorsairWithTenant } from "@/server/corsair";
 
 async function performSync(client: any) {
-  // 1. Get all local message IDs in DB
+  // 1. Get local message IDs and dates in DB (up to 1000 messages)
   const localMessages = await client.gmail.db.messages.search({
     data: {},
-    limit: 500,
+    limit: 1000,
   });
-  const localIds = new Set(localMessages.map((lm: any) => lm.entity_id).filter(Boolean));
+  const localIdToDate = new Map<string, number>();
+  for (const lm of localMessages) {
+    if (lm.entity_id) {
+      const dateVal = lm.data?.internalDate;
+      localIdToDate.set(lm.entity_id, dateVal ? parseInt(dateVal) : 0);
+    }
+  }
+  const localIds = new Set(localIdToDate.keys());
 
-  // 2. Fetch the latest active Gmail message IDs across all folders
+  // 2. Fetch the latest active Gmail message IDs across all folders in parallel
   const queries = [
     "", // latest overall
     "is:important",
@@ -21,20 +28,32 @@ async function performSync(client: any) {
   ];
 
   const activeGmailIds = new Set<string>();
+  const folderToGmailIds = new Map<string, string[]>();
 
-  for (const q of queries) {
-    try {
-      const res = await client.gmail.api.messages.list({
-        maxResults: 50,
-        q: q || undefined
-      });
-      if (res.messages) {
-        for (const m of res.messages) {
-          if (m.id) activeGmailIds.add(m.id);
+  await Promise.all(
+    queries.map(async (q) => {
+      try {
+        const res = await client.gmail.api.messages.list({
+          maxResults: 50,
+          q: q || undefined
+        });
+        const ids = res.messages?.map((m: any) => m.id).filter(Boolean) || [];
+        folderToGmailIds.set(q, ids);
+        for (const id of ids) {
+          activeGmailIds.add(id);
         }
+      } catch (err) {
+        console.error(`Failed to list messages for query "${q}":`, err);
       }
-    } catch (err) {
-      console.error(`Failed to list messages for query "${q}":`, err);
+    })
+  );
+
+  const activeIdToDate = new Map<string, number>();
+
+  // Add dates from already cached local messages
+  for (const [id, date] of localIdToDate.entries()) {
+    if (activeGmailIds.has(id)) {
+      activeIdToDate.set(id, date);
     }
   }
 
@@ -46,36 +65,103 @@ async function performSync(client: any) {
     const batchSize = 15;
     for (let i = 0; i < idsToSync.length; i += batchSize) {
       const batch = idsToSync.slice(i, i + batchSize);
-      await Promise.all(
+      const results = await Promise.all(
         batch.map((id) =>
           client.gmail.api.messages.get({
             id,
-            format: "full",
+            format: "metadata",
+            metadataHeaders: ["From", "To", "Subject", "Date"],
           }).catch((err: any) => {
             console.error(`Failed to fetch details for ${id}:`, err);
+            return null;
           })
         )
       );
+
+      for (const res of results) {
+        if (res && res.id) {
+          const dateVal = res.internalDate;
+          activeIdToDate.set(res.id, dateVal ? parseInt(dateVal) : 0);
+        }
+      }
     }
   }
 
-  // 4. Delete stale messages (present in DB but no longer in the active lists)
-  const idsToDelete = Array.from(localIds).filter(id => !activeGmailIds.has(id as string));
-  console.log(`Deleting ${idsToDelete.length} stale messages from local DB`);
+  // 4. Delete stale messages (using sliding window per query to avoid clearing old history)
+  const idsToDelete = new Set<string>();
 
-  if (idsToDelete.length > 0) {
+  for (const q of queries) {
+    const gmailIdsForQuery = folderToGmailIds.get(q) || [];
+    if (gmailIdsForQuery.length === 0) continue;
+
+    // Find the oldest date in this query's Gmail list
+    let oldestActiveDate = 0;
+    if (gmailIdsForQuery.length >= 50) {
+      const dates = gmailIdsForQuery
+        .map(id => activeIdToDate.get(id))
+        .filter((d): d is number => d !== undefined && d > 0);
+      if (dates.length > 0) {
+        oldestActiveDate = Math.min(...dates);
+      }
+    }
+
+    const gmailIdsSetForQuery = new Set(gmailIdsForQuery);
+
+    for (const lm of localMessages) {
+      const entityId = lm.entity_id;
+      if (!entityId || gmailIdsSetForQuery.has(entityId)) continue;
+
+      const cachedDate = localIdToDate.get(entityId) || 0;
+      if (cachedDate < oldestActiveDate) continue; // outside the active window, don't delete
+
+      const labels = lm.data?.labelIds || [];
+      let matchesQuery = false;
+
+      if (q === "") {
+        matchesQuery = true;
+      } else if (q === "is:important" && labels.includes("IMPORTANT")) {
+        matchesQuery = true;
+      } else if (q === "in:sent" && labels.includes("SENT")) {
+        matchesQuery = true;
+      } else if (q === "in:draft" && labels.includes("DRAFT")) {
+        matchesQuery = true;
+      } else if (q === "is:starred" && labels.includes("STARRED")) {
+        matchesQuery = true;
+      } else if (q === "in:spam" && labels.includes("SPAM")) {
+        matchesQuery = true;
+      } else if (q === "in:trash" && labels.includes("TRASH")) {
+        matchesQuery = true;
+      }
+
+      if (matchesQuery) {
+        idsToDelete.add(entityId);
+      }
+    }
+  }
+
+  let actualDeletedCount = 0;
+  console.log(`Refreshing/verifying ${idsToDelete.size} stale messages in local DB`);
+  if (idsToDelete.size > 0) {
     await Promise.all(
-      idsToDelete.map((id) =>
-        client.gmail.db.messages.deleteByEntityId(id).catch((err: any) => {
-          console.error(`Failed to delete stale message ${id}:`, err);
-        })
-      )
+      Array.from(idsToDelete).map(async (id) => {
+        try {
+          await client.gmail.api.messages.get({
+            id,
+            format: "full",
+            //metadataHeaders: ["From", "To", "Subject", "Date"],
+          });
+        } catch (err: any) {
+          actualDeletedCount++;
+          console.error(`Failed to refresh stale message ${id} (possibly deleted from Gmail), deleting:`, err);
+          await client.gmail.db.messages.deleteByEntityId(id).catch(() => {});
+        }
+      })
     );
   }
 
   return {
     syncedCount: idsToSync.length,
-    deletedCount: idsToDelete.length,
+    deletedCount: actualDeletedCount,
     totalActive: activeGmailIds.size
   };
 }
